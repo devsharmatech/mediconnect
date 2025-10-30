@@ -43,12 +43,13 @@ export async function POST(req) {
 
     // ✅ Return success response
     return success(
-      "OTP sent successfully (test mode).",
+      "OTP sent successfully",
       {
         otp,
         role: user.role,
         user_id: user.id,
       },
+      200,
       { headers: corsHeaders }
     );
   } catch (error) {
