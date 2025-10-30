@@ -8,9 +8,9 @@ export async function OPTIONS() {
 
 export async function POST(req) {
   try {
-    const { appointment_id, status, user_id } = await req.json();
-    if (!appointment_id || !status || !user_id)
-      return failure("appointment_id, status, and user_id required.", null, 400, { headers: corsHeaders });
+    const { appointment_id, status, doctor_id } = await req.json();
+    if (!appointment_id || !status || !doctor_id)
+      return failure("appointment_id, status, and doctor_id required.", null, 400, { headers: corsHeaders });
 
     if (!["approved", "rejected"].includes(status))
       return failure("Invalid status. Must be approved or rejected.", null, 400, { headers: corsHeaders });
@@ -19,6 +19,7 @@ export async function POST(req) {
       .from("appointments")
       .select("*")
       .eq("id", appointment_id)
+      .eq("doctor_id", doctor_id)
       .single();
 
     if (error || !appointment) throw new Error("Appointment not found.");
@@ -34,11 +35,11 @@ export async function POST(req) {
 
     // Notification for patient
     await supabase.from("notifications").insert({
-      user_id: appointment.patient_id,
+      doctor_id: appointment.patient_id,
       title: `Appointment ${status === "approved" ? "Approved" : "Rejected"}`,
       message: `Your appointment for ${appointment.appointment_date} at ${appointment.appointment_time} has been ${status}.`,
       type: "appointment_status",
-      metadata: { appointment_id, status, by_user: user_id }
+      metadata: { appointment_id, status, by_user: doctor_id }
     });
 
     return success(`Appointment ${status} successfully.`, updated, 200, { headers: corsHeaders });

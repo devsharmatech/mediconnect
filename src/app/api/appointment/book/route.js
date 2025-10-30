@@ -60,7 +60,7 @@ export async function POST(req) {
       .eq("doctor_id", doctor_id)
       .eq("appointment_date", appointment_date)
       .eq("appointment_time", appointment_time)
-      .eq("status", "booked")
+      .in("status", ["booked", "approved", "completed"])
       .maybeSingle();
 
     if (existingErr) throw existingErr;

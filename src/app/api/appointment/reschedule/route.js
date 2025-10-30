@@ -18,7 +18,7 @@ export async function POST(req) {
     const { data: appointment, error: fetchErr } = await supabase
       .from("appointments")
       .select("*")
-      .eq("id", appointment_id)
+      .eq("id",appointment_id)
       .single();
 
     if (fetchErr || !appointment) throw new Error("Appointment not found.");

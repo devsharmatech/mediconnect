@@ -49,7 +49,7 @@ export async function POST(req) {
       .select("appointment_time")
       .eq("doctor_id", doctor_id)
       .eq("appointment_date", date)
-      .eq("status", "booked");
+      .in("status", ["booked", "approved", "completed"]);;
 
     if (appErr) throw appErr;
 
