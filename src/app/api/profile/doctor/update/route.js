@@ -56,21 +56,29 @@ export async function PUT(req) {
     if (userData.role !== "doctor")
       return failure("Invalid role. Only doctors can be updated here.", null, 403, { headers: corsHeaders });
 
+    // ✅ Declare file URLs
     let profile_picture_url = userData.profile_picture;
-    const fileUploads = [];
+    let dmc_mci_certificate_url = null;
+    let aadhaar_pan_license_url = null;
+    let address_proof_url = null;
+    let passport_photo_url = null;
 
-    // ✅ Helper to upload a file
+    // ✅ Helper to upload file
     async function uploadFile(file, folder) {
       if (!file || !file.name) return null;
       const ext = file.name.split(".").pop();
       const fileName = `${folder}/${user_id}_${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from("profile-pictures").upload(fileName, file, { upsert: false });
+      const { error: uploadError } = await supabase.storage
+        .from("profile-pictures")
+        .upload(fileName, file, { upsert: false });
       if (uploadError) throw uploadError;
-      const { data: publicData } = supabase.storage.from("profile-pictures").getPublicUrl(fileName);
+      const { data: publicData } = supabase.storage
+        .from("profile-pictures")
+        .getPublicUrl(fileName);
       return publicData?.publicUrl || null;
     }
 
-    // ✅ Upload all files (if provided)
+    // ✅ Upload all files
     const uploads = await Promise.all([
       uploadFile(fileProfile, "profile"),
       uploadFile(fileDmc, "certificates"),
@@ -79,7 +87,13 @@ export async function PUT(req) {
       uploadFile(filePassport, "passport")
     ]);
 
-    [profile_picture_url, dmc_mci_certificate_url, aadhaar_pan_license_url, address_proof_url, passport_photo_url] = uploads;
+    [
+      profile_picture_url,
+      dmc_mci_certificate_url,
+      aadhaar_pan_license_url,
+      address_proof_url,
+      passport_photo_url
+    ] = uploads;
 
     // ✅ Parse JSON fields
     let parsedBank = null;
@@ -97,49 +111,54 @@ export async function PUT(req) {
     }
 
     // ✅ Update doctor details
-    const { error: updateError } = await supabase.from("doctor_details").update({
-      full_name,
-      email,
-      specialization,
-      experience_years: experience_years ? Number(experience_years) : null,
-      license_number,
-      clinic_name,
-      clinic_address,
-      consultation_fee: consultation_fee ? Number(consultation_fee) : 0,
-      qualification,
-      indemnity_insurance: indemnity_insurance ? Number(indemnity_insurance) : null,
-      dmc_mci_certificate: dmc_mci_certificate_url || null,
-      aadhaar_pan_license: aadhaar_pan_license_url || null,
-      address_proof: address_proof_url || null,
-      passport_photo: passport_photo_url || null,
-      bank_account_details: parsedBank,
-      digital_consent,
-      onboarding_status,
-      available_days: available_days.length ? available_days : null,
-      available_time: parsedAvailableTime,
-      updated_at: new Date()
-    }).eq("id", user_id);
+    const { error: updateError } = await supabase
+      .from("doctor_details")
+      .update({
+        full_name,
+        email,
+        specialization,
+        experience_years: experience_years ? Number(experience_years) : null,
+        license_number,
+        clinic_name,
+        clinic_address,
+        consultation_fee: consultation_fee ? Number(consultation_fee) : 0,
+        qualification,
+        indemnity_insurance: indemnity_insurance ? Number(indemnity_insurance) : null,
+        dmc_mci_certificate: dmc_mci_certificate_url || null,
+        aadhaar_pan_license: aadhaar_pan_license_url || null,
+        address_proof: address_proof_url || null,
+        passport_photo: passport_photo_url || null,
+        bank_account_details: parsedBank,
+        digital_consent,
+        onboarding_status,
+        available_days: available_days.length ? available_days : null,
+        available_time: parsedAvailableTime,
+        updated_at: new Date()
+      })
+      .eq("id", user_id);
 
     if (updateError) throw updateError;
 
-    // ✅ Update user profile picture (if changed)
+    // ✅ Update profile picture in users
     if (profile_picture_url && profile_picture_url !== userData.profile_picture) {
       await supabase.from("users").update({ profile_picture: profile_picture_url }).eq("id", user_id);
     }
 
-    return success("Doctor profile updated successfully.", {
-      user_id,
-      full_name,
-      email,
-      specialization,
-      clinic_name,
-      qualification,
-      consultation_fee,
-      profile_picture: profile_picture_url,
-      available_days,
-      available_time: parsedAvailableTime,
-      onboarding_status
-    }, 200, { headers: corsHeaders });
+    // ✅ Fetch updated full details
+    const { data: updatedDoctor, error: fetchError } = await supabase
+      .from("doctor_details")
+      .select(`
+        *,
+        users:users!inner(
+          profile_picture
+        )
+      `)
+      .eq("id", user_id)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+
+    return success("Doctor profile updated successfully.", updatedDoctor, 200, { headers: corsHeaders });
 
   } catch (error) {
     console.error("Doctor update error:", error);
