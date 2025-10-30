@@ -2,7 +2,6 @@ import { supabase } from "@/lib/supabaseAdmin";
 import { success, failure } from "@/lib/response";
 import { corsHeaders } from "@/lib/cors";
 
-// 🟢 Handle preflight (CORS)
 export async function OPTIONS() {
   return new Response("OK", { headers: corsHeaders });
 }
@@ -10,13 +9,8 @@ export async function OPTIONS() {
 export async function POST(req) {
   try {
     const { phone_number } = await req.json();
+    if (!phone_number) return failure("Phone number is required.");
 
-    // 🧩 Validate input
-    if (!phone_number) {
-      return failure("Phone number is required.", null, 400, { headers: corsHeaders });
-    }
-
-    // 🔍 Find chemist user
     const { data: user, error } = await supabase
       .from("users")
       .select("id, role")
@@ -25,12 +19,9 @@ export async function POST(req) {
       .maybeSingle();
 
     if (error) throw error;
-    if (!user) {
-      return failure("Chemist not found.", null, 404, { headers: corsHeaders });
-    }
+    if (!user) return failure("Chemist not found.", null, 404);
 
-    // 🔐 Generate OTP
-    const otp = "123456"; // test OTP
+    const otp = "123456";
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
     const { error: updateError } = await supabase
@@ -40,18 +31,13 @@ export async function POST(req) {
 
     if (updateError) throw updateError;
 
-    // ✅ Success
-    return success(
-      "OTP sent successfully",
-      {
-        otp,
-        role: user.role,
-        user_id: user.id,
-      },
-      { headers: corsHeaders }
-    );
+    return success("OTP sent successfully.", {
+      otp,
+      role: user.role,
+      user_id: user.id,
+    });
   } catch (error) {
     console.error("Chemist Login Error:", error);
-    return failure("Login failed.", error.message, 500, { headers: corsHeaders });
+    return failure("Login failed.", error.message, 500);
   }
 }

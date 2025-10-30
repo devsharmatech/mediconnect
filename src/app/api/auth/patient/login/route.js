@@ -1,5 +1,10 @@
 import { supabase } from "@/lib/supabaseAdmin";
 import { success, failure } from "@/lib/response";
+import { corsHeaders } from "@/lib/cors";
+
+export async function OPTIONS() {
+  return new Response("OK", { headers: corsHeaders });
+}
 
 export async function POST(req) {
   try {
@@ -32,7 +37,7 @@ export async function POST(req) {
       user_id: user.id,
     });
   } catch (error) {
-    console.error("Doctor Login Error:", error);
+    console.error("Patient Login Error:", error);
     return failure("Login failed.", error.message, 500);
   }
 }

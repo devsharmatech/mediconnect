@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabaseAdmin";
 import { success, failure } from "@/lib/response";
 import { corsHeaders } from "@/lib/cors";
 
-// 🟢 Handle preflight (CORS)
+// 🟢 Handle CORS preflight
 export async function OPTIONS() {
   return new Response("OK", { headers: corsHeaders });
 }
@@ -10,13 +10,8 @@ export async function OPTIONS() {
 export async function POST(req) {
   try {
     const { phone_number } = await req.json();
+    if (!phone_number) return failure("Phone number is required.");
 
-    // 🧩 Validate input
-    if (!phone_number) {
-      return failure("Phone number is required.", null, 400, { headers: corsHeaders });
-    }
-
-    // 🔍 Find doctor user
     const { data: user, error } = await supabase
       .from("users")
       .select("id, role")
@@ -25,15 +20,11 @@ export async function POST(req) {
       .maybeSingle();
 
     if (error) throw error;
-    if (!user) {
-      return failure("Doctor not found.", null, 404, { headers: corsHeaders });
-    }
+    if (!user) return failure("Doctor not found.", null, 404);
 
-    // 🔐 Generate OTP
-    const otp = "123456"; // static for testing
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 min validity
+    const otp = "123456";
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
-    // 🧾 Update OTP in database
     const { error: updateError } = await supabase
       .from("users")
       .update({ otp_code: otp, otp_expires_at: expiresAt })
@@ -41,19 +32,13 @@ export async function POST(req) {
 
     if (updateError) throw updateError;
 
-    // ✅ Return success response
-    return success(
-      "OTP sent successfully",
-      {
-        otp,
-        role: user.role,
-        user_id: user.id,
-      },
-      200,
-      { headers: corsHeaders }
-    );
+    return success("OTP sent successfully (test mode).", {
+      otp,
+      role: user.role,
+      user_id: user.id,
+    });
   } catch (error) {
     console.error("Doctor Login Error:", error);
-    return failure("Login failed.", error.message, 500, { headers: corsHeaders });
+    return failure("Login failed.", error.message, 500);
   }
 }

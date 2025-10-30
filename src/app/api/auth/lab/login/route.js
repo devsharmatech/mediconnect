@@ -2,7 +2,6 @@ import { supabase } from "@/lib/supabaseAdmin";
 import { success, failure } from "@/lib/response";
 import { corsHeaders } from "@/lib/cors";
 
-// 🟢 Handle CORS preflight requests
 export async function OPTIONS() {
   return new Response("OK", { headers: corsHeaders });
 }
@@ -10,13 +9,8 @@ export async function OPTIONS() {
 export async function POST(req) {
   try {
     const { phone_number } = await req.json();
+    if (!phone_number) return failure("Phone number is required.");
 
-    // 🧩 Validate input
-    if (!phone_number) {
-      return failure("Phone number is required.", null, 400, { headers: corsHeaders });
-    }
-
-    // 🔍 Fetch lab user from Supabase
     const { data: user, error } = await supabase
       .from("users")
       .select("id, role")
@@ -25,15 +19,11 @@ export async function POST(req) {
       .maybeSingle();
 
     if (error) throw error;
-    if (!user) {
-      return failure("Lab not found.", null, 404, { headers: corsHeaders });
-    }
+    if (!user) return failure("Lab not found.", null, 404);
 
-    // 🔐 Generate static OTP (for test)
     const otp = "123456";
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // expires in 5 mins
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
-    // 🧾 Update OTP in users table
     const { error: updateError } = await supabase
       .from("users")
       .update({ otp_code: otp, otp_expires_at: expiresAt })
@@ -41,18 +31,13 @@ export async function POST(req) {
 
     if (updateError) throw updateError;
 
-    // ✅ Send success response
-    return success(
-      "OTP sent successfully.",
-      {
-        otp,
-        role: user.role,
-        user_id: user.id,
-      },
-      { headers: corsHeaders }
-    );
+    return success("OTP sent successfully.", {
+      otp,
+      role: user.role,
+      user_id: user.id,
+    });
   } catch (error) {
     console.error("Lab Login Error:", error);
-    return failure("Login failed.", error.message, 500, { headers: corsHeaders });
+    return failure("Login failed.", error.message, 500);
   }
 }
