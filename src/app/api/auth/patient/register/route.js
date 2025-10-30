@@ -1,23 +1,29 @@
 import { supabase } from "@/lib/supabaseAdmin";
 import { success, failure } from "@/lib/response";
+import { corsHeaders } from "@/lib/cors";
+
+// 🟢 Handle CORS preflight
+export async function OPTIONS() {
+  return new Response("OK", { headers: corsHeaders });
+}
 
 export async function POST(req) {
   try {
     const body = await req.json();
     const { phone_number, full_name, email, gender, date_of_birth, address } = body;
 
-    // 🧾 Required field validation
+    // 🧾 Validate required fields
     if (!phone_number || !full_name) {
       return failure("Phone number and full name are required.", null, 400);
     }
 
-    // 📞 Validate phone number format (optional basic regex)
+    // 📞 Validate phone number format
     const phoneRegex = /^[0-9]{10,15}$/;
     if (!phoneRegex.test(phone_number)) {
       return failure("Invalid phone number format.", null, 400);
     }
 
-    // 📧 Validate email format if provided
+    // 📧 Validate email format (if provided)
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return failure("Invalid email format.", null, 400);
     }
@@ -81,12 +87,12 @@ export async function POST(req) {
       ]);
 
     if (detailsError) {
-      // rollback user if details fail
+      // Rollback user if details insert fails
       await supabase.from("users").delete().eq("id", user.id);
       throw detailsError;
     }
 
-    // ✅ Step 3: Return success with user_id
+    // ✅ Step 3: Return success response
     return success("Registration successful.", {
       user_id: user.id,
       phone_number: user.phone_number,
@@ -94,7 +100,7 @@ export async function POST(req) {
     });
 
   } catch (error) {
-    console.error("Registration Error:", error);
+    console.error("Patient Registration Error:", error);
     return failure("Registration failed.", error.message, 500);
   }
 }
