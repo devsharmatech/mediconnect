@@ -1,14 +1,20 @@
 import { supabase } from "@/lib/supabaseAdmin";
 import { success, failure } from "@/lib/response";
+import { corsHeaders } from "@/lib/cors";
+
+// 🟢 Handle preflight CORS
+export async function OPTIONS() {
+  return new Response("OK", { headers: corsHeaders });
+}
 
 export async function PUT(req) {
   try {
     const formData = await req.formData();
     const user_id = formData.get("user_id");
 
-    // 🧾 Required validation
+    // 🧾 Validation
     if (!user_id) {
-      return failure("Missing required field: user_id.", null, 400);
+      return failure("Missing required field: user_id.", null, 400, { headers: corsHeaders });
     }
 
     const full_name = formData.get("full_name");
@@ -18,12 +24,12 @@ export async function PUT(req) {
     const address = formData.get("address");
     const file = formData.get("profile_picture");
 
-    // 📧 Optional: validate email format
+    // 📧 Validate email format
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return failure("Invalid email format.", null, 400);
+      return failure("Invalid email format.", null, 400, { headers: corsHeaders });
     }
 
-    // 🧩 Check user existence
+    // 🔍 Check user existence
     const { data: userData, error: userFetchError } = await supabase
       .from("users")
       .select("id, profile_picture")
@@ -32,14 +38,14 @@ export async function PUT(req) {
 
     if (userFetchError) {
       console.error("Error fetching user:", userFetchError);
-      return failure("Unable to fetch user details.", userFetchError.message, 500);
+      return failure("Unable to fetch user details.", userFetchError.message, 500, { headers: corsHeaders });
     }
 
     if (!userData) {
-      return failure("User not found.", null, 404);
+      return failure("User not found.", null, 404, { headers: corsHeaders });
     }
 
-    // 🔍 Check if email already exists (in other users)
+    // 🧩 Check if email already exists (other users)
     if (email) {
       const { data: emailExists, error: emailError } = await supabase
         .from("patient_details")
@@ -50,11 +56,11 @@ export async function PUT(req) {
 
       if (emailError) {
         console.error("Error checking email uniqueness:", emailError);
-        return failure("Failed to validate email uniqueness.", emailError.message, 500);
+        return failure("Failed to validate email uniqueness.", emailError.message, 500, { headers: corsHeaders });
       }
 
       if (emailExists) {
-        return failure("Email already registered with another account.", null, 409);
+        return failure("Email already registered with another account.", null, 409, { headers: corsHeaders });
       }
     }
 
@@ -88,7 +94,7 @@ export async function PUT(req) {
         profile_picture_url = publicData?.publicUrl || profile_picture_url;
       } catch (uploadErr) {
         console.error("Profile picture upload failed:", uploadErr);
-        return failure("Failed to upload new profile picture.", uploadErr.message, 500);
+        return failure("Failed to upload new profile picture.", uploadErr.message, 500, { headers: corsHeaders });
       }
     }
 
@@ -107,10 +113,10 @@ export async function PUT(req) {
 
     if (patientError) {
       console.error("Error updating patient details:", patientError);
-      return failure("Failed to update patient profile.", patientError.message, 500);
+      return failure("Failed to update patient profile.", patientError.message, 500, { headers: corsHeaders });
     }
 
-    // 🧠 Update user profile picture (if changed)
+    // 🧠 Update user profile picture if changed
     if (profile_picture_url !== userData.profile_picture) {
       const { error: userUpdateError } = await supabase
         .from("users")
@@ -122,21 +128,26 @@ export async function PUT(req) {
 
       if (userUpdateError) {
         console.error("Error updating user picture:", userUpdateError);
-        return failure("Failed to update profile picture URL.", userUpdateError.message, 500);
+        return failure("Failed to update profile picture URL.", userUpdateError.message, 500, { headers: corsHeaders });
       }
     }
 
-    return success("Profile updated successfully.", {
-      user_id,
-      full_name,
-      email,
-      gender,
-      date_of_birth,
-      address,
-      profile_picture: profile_picture_url,
-    });
+    return success(
+      "Profile updated successfully.",
+      {
+        user_id,
+        full_name,
+        email,
+        gender,
+        date_of_birth,
+        address,
+        profile_picture: profile_picture_url,
+      },
+      200,
+      { headers: corsHeaders }
+    );
   } catch (error) {
     console.error("Unexpected error:", error);
-    return failure("Unexpected server error occurred.", error.message, 500);
+    return failure("Unexpected server error occurred.", error.message, 500, { headers: corsHeaders });
   }
 }

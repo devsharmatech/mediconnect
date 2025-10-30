@@ -2,7 +2,6 @@ import { supabase } from "@/lib/supabaseAdmin";
 import { success, failure } from "@/lib/response";
 import { corsHeaders } from "@/lib/cors";
 
-
 export async function OPTIONS() {
   return new Response("OK", { headers: corsHeaders });
 }
@@ -13,19 +12,17 @@ export async function POST(req) {
     const { phone_number, full_name, email, gender, date_of_birth, address } = body;
 
     if (!phone_number || !full_name) {
-      return failure("Phone number and full name are required.", null, 400);
+      return failure("Phone number and full name are required.", null, 400, { headers: corsHeaders });
     }
 
     const phoneRegex = /^[0-9]{10,15}$/;
     if (!phoneRegex.test(phone_number)) {
-      return failure("Invalid phone number format.", null, 400);
+      return failure("Invalid phone number format.", null, 400, { headers: corsHeaders });
     }
-
 
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return failure("Invalid email format.", null, 400);
+      return failure("Invalid email format.", null, 400, { headers: corsHeaders });
     }
-
 
     const { data: phoneExists, error: phoneError } = await supabase
       .from("users")
@@ -35,7 +32,7 @@ export async function POST(req) {
 
     if (phoneError) throw phoneError;
     if (phoneExists) {
-      return failure("Phone number already registered.", null, 409);
+      return failure("Phone number already registered.", null, 409, { headers: corsHeaders });
     }
 
     if (email) {
@@ -47,9 +44,12 @@ export async function POST(req) {
 
       if (emailError) throw emailError;
       if (emailExists) {
-        return failure("Email already registered.", null, 409);
+        return failure("Email already registered.", null, 409, { headers: corsHeaders });
       }
     }
+
+    const otp = "123456";
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
     const { data: user, error: userError } = await supabase
       .from("users")
@@ -58,8 +58,8 @@ export async function POST(req) {
           phone_number,
           role: "patient",
           is_verified: false,
-          otp_code: null,
-          otp_expires_at: null,
+          otp_code: otp,
+          otp_expires_at: expiresAt,
           created_at: new Date(),
         },
       ])
@@ -68,34 +68,35 @@ export async function POST(req) {
 
     if (userError) throw userError;
 
-    const { error: detailsError } = await supabase
-      .from("patient_details")
-      .insert([
-        {
-          id: user.id,
-          full_name,
-          email: email || null,
-          gender: gender || null,
-          date_of_birth: date_of_birth || null,
-          address: address || null,
-        },
-      ]);
+    const { error: detailsError } = await supabase.from("patient_details").insert([
+      {
+        id: user.id,
+        full_name,
+        email: email || null,
+        gender: gender || null,
+        date_of_birth: date_of_birth || null,
+        address: address || null,
+      },
+    ]);
 
     if (detailsError) {
       await supabase.from("users").delete().eq("id", user.id);
       throw detailsError;
     }
 
-    return success("Registration successful.", {
-      user_id: user.id,
-      phone_number: user.phone_number,
-      role: user.role,
-      is_verified: user.is_verified,
-      user : user,
-    });
-
+    return success(
+      "Registration successful. OTP sent for verification.",
+      {
+        user_id: user.id,
+        phone_number: user.phone_number,
+        role: user.role,
+        user,
+      },
+      201,
+      { headers: corsHeaders }
+    );
   } catch (error) {
-    console.error("Patient Registration Error:", error);
-    return failure("Registration failed.", error.message, 500);
+    console.error("Registration Error:", error);
+    return failure("Registration failed.", error.message, 500, { headers: corsHeaders });
   }
 }
