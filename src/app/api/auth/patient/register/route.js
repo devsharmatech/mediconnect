@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabaseAdmin";
 import { success, failure } from "@/lib/response";
 import { corsHeaders } from "@/lib/cors";
 
-// 🟢 Handle CORS preflight
+
 export async function OPTIONS() {
   return new Response("OK", { headers: corsHeaders });
 }
@@ -12,23 +12,21 @@ export async function POST(req) {
     const body = await req.json();
     const { phone_number, full_name, email, gender, date_of_birth, address } = body;
 
-    // 🧾 Validate required fields
     if (!phone_number || !full_name) {
       return failure("Phone number and full name are required.", null, 400);
     }
 
-    // 📞 Validate phone number format
     const phoneRegex = /^[0-9]{10,15}$/;
     if (!phoneRegex.test(phone_number)) {
       return failure("Invalid phone number format.", null, 400);
     }
 
-    // 📧 Validate email format (if provided)
+
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return failure("Invalid email format.", null, 400);
     }
 
-    // 🔍 Check if phone number already exists
+
     const { data: phoneExists, error: phoneError } = await supabase
       .from("users")
       .select("id")
@@ -40,7 +38,6 @@ export async function POST(req) {
       return failure("Phone number already registered.", null, 409);
     }
 
-    // 🔍 Check if email already exists (if provided)
     if (email) {
       const { data: emailExists, error: emailError } = await supabase
         .from("patient_details")
@@ -54,7 +51,6 @@ export async function POST(req) {
       }
     }
 
-    // ✅ Step 1: Create User
     const { data: user, error: userError } = await supabase
       .from("users")
       .insert([
@@ -72,7 +68,6 @@ export async function POST(req) {
 
     if (userError) throw userError;
 
-    // ✅ Step 2: Create Patient Details
     const { error: detailsError } = await supabase
       .from("patient_details")
       .insert([
@@ -87,16 +82,16 @@ export async function POST(req) {
       ]);
 
     if (detailsError) {
-      // Rollback user if details insert fails
       await supabase.from("users").delete().eq("id", user.id);
       throw detailsError;
     }
 
-    // ✅ Step 3: Return success response
     return success("Registration successful.", {
       user_id: user.id,
       phone_number: user.phone_number,
       role: user.role,
+      is_verified: user.is_verified,
+      user : user,
     });
 
   } catch (error) {
