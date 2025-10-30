@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabaseAdmin";
-import { corsHeaders } from "@/lib/cors";
 import { success, failure } from "@/lib/response";
+import { corsHeaders } from "@/lib/cors";
 
 export async function OPTIONS() {
   return new Response("OK", { headers: corsHeaders });
@@ -13,7 +13,7 @@ export async function POST(req) {
     if (!doctor_id)
       return failure("doctor_id is required.", null, 400, { headers: corsHeaders });
 
-    // ✅ Verify that doctor_id belongs to a doctor user
+    // Verify doctor exists and is a doctor
     const { data: doctorUser, error: userErr } = await supabase
       .from("users")
       .select("id, role")
@@ -29,27 +29,7 @@ export async function POST(req) {
 
     let query = supabase
       .from("appointments")
-      .select(
-        `
-        id,
-        appointment_date,
-        appointment_time,
-        status,
-        disease_info,
-        created_at,
-        patient:user_id!appointments_patient_id_fkey (
-          id,
-          role,
-          patient_details:patient_details (
-            full_name,
-            email,
-            gender,
-            blood_group
-          )
-        )
-      `,
-        { count: "exact" }
-      )
+      .select("*", { count: "exact" })
       .eq("doctor_id", doctor_id)
       .order("appointment_date", { ascending: true })
       .order("appointment_time", { ascending: true });
@@ -59,13 +39,32 @@ export async function POST(req) {
 
     query = query.range(offset, offset + perPage - 1);
 
-    const { data, error, count } = await query;
+    const { data: appointments, error, count } = await query;
     if (error) throw error;
+
+    if (!appointments.length)
+      return success("No appointments found.", { appointments: [], pagination: {} }, 200, { headers: corsHeaders });
+
+    // Collect all patient IDs to get patient info
+    const patientIds = appointments.map((a) => a.patient_id);
+
+    const { data: patients, error: pErr } = await supabase
+      .from("patient_details")
+      .select("id, full_name, email, gender, blood_group")
+      .in("id", patientIds);
+
+    if (pErr) throw pErr;
+
+    // Merge data
+    const merged = appointments.map((a) => ({
+      ...a,
+      patient: patients.find((p) => p.id === a.patient_id) || null,
+    }));
 
     return success(
       "Doctor appointments fetched successfully.",
       {
-        appointments: data,
+        appointments: merged,
         pagination: {
           total: count,
           perPage,
