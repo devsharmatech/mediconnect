@@ -9,23 +9,23 @@ export async function OPTIONS() {
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { city, min_rating, onboarding_status } = body || {};
+    const { min_rating, city, license_number, store_name } = body || {};
 
     let query = supabase
       .from("chemist_details")
       .select(`
         id,
-        name,
+        store_name,
+        owner_name,
         email,
+        gst_number,
         license_number,
-        shop_name,
         address,
-        contact_number,
-        rating,
-        total_reviews,
-        onboarding_status,
+        open_hours,
         latitude,
         longitude,
+        rating,
+        total_reviews,
         users:users!inner(
           id,
           profile_picture,
@@ -34,25 +34,26 @@ export async function POST(req) {
       `)
       .eq("users.role", "chemist");
 
-    if (city) query = query.ilike("address", `%${city}%`);
     if (min_rating) query = query.gte("rating", Number(min_rating));
-    if (onboarding_status) query = query.eq("onboarding_status", onboarding_status);
+    if (city) query = query.ilike("address", `%${city}%`);
+    if (license_number) query = query.ilike("license_number", `%${license_number}%`);
+    if (store_name) query = query.ilike("store_name", `%${store_name}%`);
 
     query = query.order("rating", { ascending: false });
-    const { data, error } = await query;
+
+    const { data: chemists, error } = await query;
     if (error) throw error;
 
-    if (!data || data.length === 0) {
-      const { data: all, error: allErr } = await supabase
+    if (!chemists || chemists.length === 0) {
+      const { data: allChemists, error: allError } = await supabase
         .from("chemist_details")
         .select(`
           id,
-          name,
-          shop_name,
+          store_name,
+          owner_name,
+          email,
           address,
-          contact_number,
           rating,
-          total_reviews,
           users:users!inner(
             id,
             profile_picture,
@@ -62,14 +63,13 @@ export async function POST(req) {
         .eq("users.role", "chemist")
         .order("rating", { ascending: false });
 
-      if (allErr) throw allErr;
-
-      return success("No filters applied or no match found — returning all chemists.", all, 200, { headers: corsHeaders });
+      if (allError) throw allError;
+      return success("No filters or no match — returning all chemists.", allChemists, 200, { headers: corsHeaders });
     }
 
-    return success("Chemists fetched successfully.", data, 200, { headers: corsHeaders });
+    return success("Chemists fetched successfully.", chemists, 200, { headers: corsHeaders });
   } catch (error) {
-    console.error("Chemist fetch error:", error);
+    console.error("Fetch chemists error:", error);
     return failure("Failed to fetch chemist list.", error.message, 500, { headers: corsHeaders });
   }
 }

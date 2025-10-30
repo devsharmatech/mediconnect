@@ -9,69 +9,83 @@ export async function OPTIONS() {
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { specialization, min_rating, city, onboarding_status } = body || {};
+    const { min_rating, city, license_number, pharmacy_name } = body || {};
 
     let query = supabase
       .from("pharmacist_details")
-      .select(`
-        id,
+      .select(
+        `id,
         full_name,
         email,
-        specialization,
         license_number,
         experience_years,
-        workplace_name,
-        workplace_address,
-        rating,
-        total_reviews,
-        onboarding_status,
+        pharmacy_name,
+        store_name,
+        address,
         latitude,
         longitude,
+        rating,
         users:users!inner(
           id,
           profile_picture,
           role
         )
-      `)
+      `
+      )
       .eq("users.role", "pharmacist");
 
-    if (specialization) query = query.ilike("specialization", `%${specialization}%`);
     if (min_rating) query = query.gte("rating", Number(min_rating));
-    if (city) query = query.ilike("workplace_address", `%${city}%`);
-    if (onboarding_status) query = query.eq("onboarding_status", onboarding_status);
+    if (city) query = query.ilike("address", `%${city}%`);
+    if (license_number)
+      query = query.ilike("license_number", `%${license_number}%`);
+    if (pharmacy_name)
+      query = query.ilike("pharmacy_name", `%${pharmacy_name}%`);
 
     query = query.order("rating", { ascending: false });
-    const { data, error } = await query;
+
+    const { data: pharmacists, error } = await query;
     if (error) throw error;
 
-    if (!data || data.length === 0) {
-      const { data: all, error: allErr } = await supabase
+    if (!pharmacists || pharmacists.length === 0) {
+      const { data: allPharmacists, error: allError } = await supabase
         .from("pharmacist_details")
-        .select(`
+        .select(
+          `id,
+        full_name,
+        email,
+        license_number,
+        experience_years,
+        pharmacy_name,
+        store_name,
+        address,
+        latitude,
+        longitude,
+        rating,
+        users:users!inner(
           id,
-          full_name,
-          specialization,
-          workplace_name,
-          workplace_address,
-          rating,
-          total_reviews,
-          users:users!inner(
-            id,
-            profile_picture,
-            role
-          )
-        `)
+          profile_picture,
+          role
+         )`
+        )
         .eq("users.role", "pharmacist")
         .order("rating", { ascending: false });
 
-      if (allErr) throw allErr;
-
-      return success("No filters applied or no match found — returning all pharmacists.", all, 200, { headers: corsHeaders });
+      if (allError) throw allError;
+      return success(
+        "No filters or no match — returning all pharmacists.",
+        allPharmacists,
+        200,
+        { headers: corsHeaders }
+      );
     }
 
-    return success("Pharmacists fetched successfully.", data, 200, { headers: corsHeaders });
+    return success("Pharmacists fetched successfully.", pharmacists, 200, {
+      headers: corsHeaders,
+    });
   } catch (error) {
-    console.error("Pharmacist fetch error:", error);
-    return failure("Failed to fetch pharmacist list.", error.message, 500, { headers: corsHeaders });
+    console.error("Fetch pharmacists error:", error);
+    return failure("Failed to fetch pharmacist list.", error.message, 500, {
+      headers: corsHeaders,
+    });
   }
 }
