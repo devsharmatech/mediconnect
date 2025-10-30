@@ -8,22 +8,37 @@ export async function OPTIONS() {
 
 export async function POST(req) {
   try {
-    const { notification_ids, user_id } = await req.json();
+    const { user_id, notification_ids = [] } = await req.json();
 
-    if (!notification_ids || !Array.isArray(notification_ids) || !user_id)
-      return failure("notification_ids (array) and user_id required.", null, 400, { headers: corsHeaders });
+    if (!user_id)
+      return failure("user_id is required.", null, 400, { headers: corsHeaders });
 
-    const { error } = await supabase
-      .from("notifications")
-      .update({ read: true })
-      .in("id", notification_ids)
-      .eq("user_id", user_id);
+    let query = supabase.from("notifications").update({ read: true }).eq("user_id", user_id);
+
+    if (notification_ids.length > 0) {
+      // Mark specific notifications
+      query = query.in("id", notification_ids);
+    } else {
+      // Mark all unread for this user
+      query = query.eq("read", false);
+    }
+
+    const { error } = await query;
 
     if (error) throw error;
 
-    return success("Notifications marked as read.", null, 200, { headers: corsHeaders });
+    return success(
+      notification_ids.length > 0
+        ? "Selected notifications marked as read."
+        : "All unread notifications marked as read.",
+      null,
+      200,
+      { headers: corsHeaders }
+    );
   } catch (error) {
-    console.error(error);
-    return failure("Failed to mark notifications as read.", error.message, 500, { headers: corsHeaders });
+    console.error("Notification read error:", error);
+    return failure("Failed to mark notifications as read.", error.message, 500, {
+      headers: corsHeaders,
+    });
   }
 }
