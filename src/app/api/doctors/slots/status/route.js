@@ -25,6 +25,7 @@ export async function POST(req) {
     const results = [];
 
     for (const time of appointment_times) {
+      // ✅ Check if slot exists
       const { data: existing, error: existingErr } = await supabase
         .from("appointments")
         .select("id, status")
@@ -35,9 +36,10 @@ export async function POST(req) {
 
       if (existingErr) throw existingErr;
 
+      // ✅ Freeze logic
       if (action === "freeze") {
-        if (existing && existing.status === "booked") {
-          results.push({ time, status: "failed", message: "Slot already booked" });
+        if (existing && ["booked", "approved", "completed"].includes(existing.status)) {
+          results.push({ time, status: "failed", message: "Slot already booked by a patient" });
           continue;
         }
 
@@ -45,10 +47,16 @@ export async function POST(req) {
           results.push({ time, status: "skipped", message: "Slot already freezed" });
           continue;
         }
+
+        // Update or Insert freezed record
         if (existing) {
           const { data, error } = await supabase
             .from("appointments")
-            .update({ status: "freezed" })
+            .update({
+              status: "freezed",
+              patient_id: doctor_id, // doctor freezes his own slot
+              updated_at: new Date().toISOString(),
+            })
             .eq("id", existing.id)
             .select()
             .single();
@@ -57,7 +65,15 @@ export async function POST(req) {
         } else {
           const { data, error } = await supabase
             .from("appointments")
-            .insert([{ doctor_id, appointment_date, appointment_time: time, status: "freezed" }])
+            .insert([
+              {
+                doctor_id,
+                patient_id: doctor_id, // self-freeze
+                appointment_date,
+                appointment_time: time,
+                status: "freezed",
+              },
+            ])
             .select()
             .single();
           if (error) throw error;
@@ -65,6 +81,7 @@ export async function POST(req) {
         }
       }
 
+      // ✅ Unfreeze logic
       if (action === "unfreeze") {
         if (!existing || existing.status !== "freezed") {
           results.push({ time, status: "failed", message: "Slot is not freezed" });
@@ -75,8 +92,8 @@ export async function POST(req) {
           .from("appointments")
           .delete()
           .eq("id", existing.id);
-        if (delErr) throw delErr;
 
+        if (delErr) throw delErr;
         results.push({ time, status: "success", action: "unfreezed" });
       }
     }
