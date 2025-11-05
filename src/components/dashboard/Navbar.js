@@ -1,8 +1,18 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { getLoggedInUser } from "@/lib/authHelpers";
-import { Bell, Search, Sun, Moon, User, Settings, LogOut, Menu } from "lucide-react";
+import { getLoggedInUser, logoutUser } from "@/lib/authHelpers";
+import {
+  Bell,
+  Search,
+  Sun,
+  Moon,
+  User,
+  Settings,
+  LogOut,
+  Menu,
+} from "lucide-react";
+import { useRouter } from "next/router";
 
 export default function Navbar({ onMenuClick, sidebarOpen }) {
   const [role, setRole] = useState("admin");
@@ -12,12 +22,36 @@ export default function Navbar({ onMenuClick, sidebarOpen }) {
   const [searchQuery, setSearchQuery] = useState("");
   const notificationsRef = useRef(null);
   const profileRef = useRef(null);
+  
 
+  const handleLogout = (role) => {
+    logoutUser(role);
+  };
   const notifications = [
-    { id: 1, message: "New appointment booked", time: "5 min ago", read: false },
-    { id: 2, message: "Patient checkup completed", time: "1 hour ago", read: false },
-    { id: 3, message: "New medicine order placed", time: "2 hours ago", read: true },
-    { id: 4, message: "System backup completed", time: "1 day ago", read: true },
+    {
+      id: 1,
+      message: "New appointment booked",
+      time: "5 min ago",
+      read: false,
+    },
+    {
+      id: 2,
+      message: "Patient checkup completed",
+      time: "1 hour ago",
+      read: false,
+    },
+    {
+      id: 3,
+      message: "New medicine order placed",
+      time: "2 hours ago",
+      read: true,
+    },
+    {
+      id: 4,
+      message: "System backup completed",
+      time: "1 day ago",
+      read: true,
+    },
   ];
 
   useEffect(() => {
@@ -28,7 +62,10 @@ export default function Navbar({ onMenuClick, sidebarOpen }) {
     setTheme(storedTheme);
 
     const handleClickOutside = (event) => {
-      if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target)
+      ) {
         setNotificationsOpen(false);
       }
       if (profileRef.current && !profileRef.current.contains(event.target)) {
@@ -36,8 +73,8 @@ export default function Navbar({ onMenuClick, sidebarOpen }) {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const toggleTheme = () => {
@@ -47,7 +84,7 @@ export default function Navbar({ onMenuClick, sidebarOpen }) {
     localStorage.setItem("theme", newTheme);
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <header className="sticky top-0 z-20 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700 px-4 lg:px-6 py-4 shadow-sm flex-shrink-0">
@@ -96,14 +133,16 @@ export default function Navbar({ onMenuClick, sidebarOpen }) {
           <button
             onClick={toggleTheme}
             className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 cursor-pointer"
-            title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+            title={
+              theme === "light" ? "Switch to dark mode" : "Switch to light mode"
+            }
           >
             {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
           </button>
 
           {/* Notifications Dropdown */}
           <div className="relative" ref={notificationsRef}>
-            <button 
+            <button
               onClick={() => setNotificationsOpen(!notificationsOpen)}
               className="relative p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 cursor-pointer"
             >
@@ -118,15 +157,21 @@ export default function Navbar({ onMenuClick, sidebarOpen }) {
             {notificationsOpen && (
               <div className="absolute right-0 top-12 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                  <h3 className="font-semibold text-gray-800 dark:text-gray-200">Notifications</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{unreadCount} unread</p>
+                  <h3 className="font-semibold text-gray-800 dark:text-gray-200">
+                    Notifications
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {unreadCount} unread
+                  </p>
                 </div>
                 <div className="max-h-96 overflow-y-auto">
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}
                       className={`p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 cursor-pointer transition-colors ${
-                        !notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                        !notification.read
+                          ? "bg-blue-50 dark:bg-blue-900/20"
+                          : ""
                       }`}
                     >
                       <p className="text-sm text-gray-800 dark:text-gray-200 font-medium">
@@ -162,7 +207,9 @@ export default function Navbar({ onMenuClick, sidebarOpen }) {
                   Admin User
                 </p>
                 <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {role ? role.charAt(0).toUpperCase() + role.slice(1) : "Admin"}
+                  {role
+                    ? role.charAt(0).toUpperCase() + role.slice(1)
+                    : "Admin"}
                 </p>
               </div>
             </button>
@@ -172,14 +219,23 @@ export default function Navbar({ onMenuClick, sidebarOpen }) {
                 <div className="p-2">
                   <button className="flex items-center space-x-3 w-full p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
                     <User size={18} />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Profile</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      Profile
+                    </span>
                   </button>
                   <button className="flex items-center space-x-3 w-full p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
                     <Settings size={18} />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Settings</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      Settings
+                    </span>
                   </button>
                   <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-                  <button className="flex items-center space-x-3 w-full p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors cursor-pointer">
+                  <button
+                    onClick={() => {
+                      handleLogout("admin");
+                    }}
+                    className="flex items-center space-x-3 w-full p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors cursor-pointer"
+                  >
                     <LogOut size={18} />
                     <span className="text-sm">Logout</span>
                   </button>

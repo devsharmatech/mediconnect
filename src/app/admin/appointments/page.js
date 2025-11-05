@@ -15,25 +15,32 @@ import {
   Phone,
   Mail,
   Calendar,
-  Droplets,
   MapPin,
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Sparkles,
+  Clock,
+  Stethoscope,
+  DollarSign,
+  Shield,
+  Activity,
+  IndianRupee,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 
-export default function PatientsPage() {
-  const [patients, setPatients] = useState([]);
+export default function AppointmentsPage() {
+  const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [viewPatient, setViewPatient] = useState(null);
+  const [viewAppointment, setViewAppointment] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [genderFilter, setGenderFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("");
+  const [summary, setSummary] = useState([]);
 
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -45,12 +52,12 @@ export default function PatientsPage() {
     hasPrevPage: false,
   });
 
-  // In your fetchPatients function
-  const fetchPatients = async (
+  // Fetch appointments function
+  const fetchAppointments = async (
     page = 1,
     search = searchTerm,
     status = statusFilter,
-    gender = genderFilter
+    date = dateFilter
   ) => {
     try {
       setLoading(true);
@@ -59,24 +66,36 @@ export default function PatientsPage() {
         limit: "10",
         ...(search && { search }),
         ...(status !== "all" && { status }),
-        ...(gender !== "all" && { gender }),
+        ...(date && { date }),
       });
 
-      const res = await fetch(`/api/patients?${params}`);
+      const res = await fetch(`/api/appointment/web?${params}`);
       const data = await res.json();
 
       if (!data.success) throw new Error(data.error);
 
-      setPatients(data.data || []);
+      setAppointments(data.data.appointments || []);
+      setSummary(data.data.summary || []);
       setPagination(
-        data.pagination || {
-          currentPage: 1,
-          totalPages: 1,
-          totalItems: 0,
-          itemsPerPage: 10,
-          hasNextPage: false,
-          hasPrevPage: false,
-        }
+        data.data.pagination
+          ? {
+              currentPage: data.data.pagination.currentPage || 1,
+              totalPages: data.data.pagination.totalPages || 1,
+              totalItems: data.data.pagination.total || 0,
+              itemsPerPage: data.data.pagination.perPage || 10,
+              hasNextPage:
+                data.data.pagination.currentPage <
+                data.data.pagination.totalPages,
+              hasPrevPage: data.data.pagination.currentPage > 1,
+            }
+          : {
+              currentPage: 1,
+              totalPages: 1,
+              totalItems: 0,
+              itemsPerPage: 10,
+              hasNextPage: false,
+              hasPrevPage: false,
+            }
       );
     } catch (err) {
       toast.error(err.message);
@@ -85,23 +104,28 @@ export default function PatientsPage() {
     }
   };
 
-  // Update useEffect to include all filters
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchPatients(1, searchTerm, statusFilter, genderFilter);
-    }, 500);
+  // Fetch single appointment details
+  const fetchAppointmentDetails = async (id) => {
+    try {
+      const res = await fetch(`/api/appointment/web/${id}`);
+      const data = await res.json();
 
-    return () => clearTimeout(timer);
-  }, [searchTerm, statusFilter, genderFilter]);
+      if (!data.success) throw new Error(data.error);
+
+      setViewAppointment(data.data.appointment);
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
 
   // Debounced search and filter
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchPatients(1, searchTerm, statusFilter, genderFilter);
+      fetchAppointments(1, searchTerm, statusFilter, dateFilter);
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, statusFilter, genderFilter]);
+  }, [searchTerm, statusFilter, dateFilter]);
 
   const toggleSelect = (id) => {
     setSelectedIds((prev) =>
@@ -111,10 +135,11 @@ export default function PatientsPage() {
 
   const handleDelete = async () => {
     setConfirmOpen(false);
-    if (selectedIds.length === 0) return toast.error("No patients selected!");
+    if (selectedIds.length === 0)
+      return toast.error("No appointments selected!");
 
     try {
-      const res = await fetch("/api/patients/delete-multiple", {
+      const res = await fetch("/api/appointment/web/delete-multiple", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: selectedIds }),
@@ -122,11 +147,11 @@ export default function PatientsPage() {
 
       const result = await res.json();
       if (result.success) {
-        toast.success("Patients deleted successfully!");
+        toast.success("Appointments deleted successfully!");
         setSelectedIds([]);
-        fetchPatients(pagination.currentPage);
+        fetchAppointments(pagination.currentPage);
       } else {
-        toast.error(result.error || "Failed to delete patients");
+        toast.error(result.error || "Failed to delete appointments");
       }
     } catch (err) {
       toast.error("Error: " + err.message);
@@ -136,7 +161,7 @@ export default function PatientsPage() {
   // Pagination handlers
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
-      fetchPatients(newPage);
+      fetchAppointments(newPage);
     }
   };
 
@@ -176,13 +201,37 @@ export default function PatientsPage() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "active":
+      case "booked":
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900/40 dark:text-gray-300 border border-gray-200 dark:border-gray-800";
+      case "approved":
         return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800";
-      case "inactive":
+      case "completed":
         return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700";
+      case "cancelled":
+        return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 border border-red-200 dark:border-red-800";
+      case "rejected":
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 border border-orange-200 dark:border-orange-800";
+      case "freezed":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800";
       default:
         return "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800";
     }
+  };
+
+  const formatTime = (time) => {
+    return new Date(`1970-01-01T${time}`).toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
 
   const containerVariants = {
@@ -247,7 +296,7 @@ export default function PatientsPage() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.2 }}
                     >
-                      Patient Management
+                      Appointments Management
                     </motion.h4>
                     <motion.p
                       className="text-gray-600 dark:text-gray-400 mt-2"
@@ -255,7 +304,7 @@ export default function PatientsPage() {
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.3 }}
                     >
-                      Showing {pagination.totalItems} patients
+                      Showing {pagination.totalItems} appointments
                     </motion.p>
                   </div>
                 </div>
@@ -263,37 +312,49 @@ export default function PatientsPage() {
 
               {/* Stats Cards */}
               <motion.div
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8"
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
               >
                 {[
                   {
-                    label: "Total Patients",
-                    value: pagination.totalItems,
-                    icon: User,
-                    color: "from-gray-500 to-gray-600 dark:from-gray-800 dark:to-gray-900 text-gray-50",
-                  },
-                  {
-                    label: "Current Page",
-                    value: `${pagination.currentPage}/${pagination.totalPages}`,
+                    label: "Total Appointments",
+                    value: summary.total || 0,
                     icon: Calendar,
-                    color: "from-blue-500 to-blue-600 dark:from-blue-800 dark:to-blue-900 text-gray-50",
+                    color: "from-gray-500 to-gray-600",
                   },
                   {
-                    label: "Items Per Page",
-                    value: pagination.itemsPerPage,
-                    icon: User,
-                    color: "from-green-500 to-green-600 dark:from-green-800 dark:to-green-900 text-gray-50",
+                    label: "Booked",
+                    value: summary.booked || 0,
+                    icon: Activity,
+                    color: "from-blue-500 to-blue-600",
                   },
                   {
-                    label: "Showing",
-                    value: patients.length,
+                    label: "Approved",
+                    value: summary.approved || 0,
+                    icon: Shield,
+                    color: "from-green-500 to-green-600",
+                  },
+                  {
+                    label: "Cancelled",
+                    value: summary.cancelled || 0,
                     icon: AlertTriangle,
-                    color: "from-yellow-500 to-yellow-600 dark:from-yellow-800 dark:to-yellow-900 text-gray-50",
+                    color: "from-red-500 to-red-600",
                   },
-                ].map((stat, index) => (
+                  {
+                    label: "Completed",
+                    value: summary.completed || 0,
+                    icon: CheckCircle,
+                    color: "from-purple-500 to-purple-600",
+                  },
+                  {
+                    label: "Rejected",
+                    value: summary.rejected || 0,
+                    icon: XCircle,
+                    color: "from-orange-500 to-orange-600",
+                  },
+                ].map((stat) => (
                   <motion.div
                     key={stat.label}
                     variants={cardVariants}
@@ -335,10 +396,10 @@ export default function PatientsPage() {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
                       type="text"
-                      placeholder="Search patients by name, email, or phone..."
+                      placeholder="Search appointments by patient, doctor, or contact..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-gray-800 focus:border-transparent backdrop-blur-sm transition-all duration-300 cursor-text"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-gray-500 focus:border-transparent backdrop-blur-sm transition-all duration-300 cursor-text"
                     />
                   </motion.div>
 
@@ -348,39 +409,39 @@ export default function PatientsPage() {
                       whileFocus={{ scale: 1.05 }}
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-800 focus:border-transparent backdrop-blur-sm transition-all duration-300 cursor-pointer"
+                      className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-transparent backdrop-blur-sm transition-all duration-300 cursor-pointer"
                     >
                       <option value="all">All Status</option>
-                      <option value="1">Active</option>
-                      <option value="0">Inactive</option>
+                      <option value="booked">Booked</option>
+                      <option value="approved">Approved</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="rejected">Rejected</option>
                     </motion.select>
 
-                    <motion.select
+                    <motion.input
                       whileFocus={{ scale: 1.05 }}
-                      value={genderFilter}
-                      onChange={(e) => setGenderFilter(e.target.value)}
-                      className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-800 focus:border-transparent backdrop-blur-sm transition-all duration-300 cursor-pointer"
-                    >
-                      <option value="all">All Gender</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="other">Other</option>
-                    </motion.select>
+                      type="date"
+                      value={dateFilter}
+                      onChange={(e) => setDateFilter(e.target.value)}
+                      className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-transparent backdrop-blur-sm transition-all duration-300 cursor-pointer"
+                    />
 
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => fetchPatients(1)}
+                      onClick={() => fetchAppointments(1)}
                       className="p-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-300 cursor-pointer backdrop-blur-sm"
                     >
                       <Filter size={20} />
                     </motion.button>
 
-                  
+                    
+
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => fetchPatients(pagination.currentPage)}
+                      onClick={() => fetchAppointments(pagination.currentPage)}
                       disabled={loading}
                       className="p-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer backdrop-blur-sm"
                     >
@@ -404,7 +465,7 @@ export default function PatientsPage() {
                       <div className="flex items-center space-x-2">
                         <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
                         <span className="text-red-800 dark:text-red-300 font-medium">
-                          {selectedIds.length} patient(s) selected
+                          {selectedIds.length} appointment(s) selected
                         </span>
                       </div>
                       <motion.button
@@ -421,9 +482,9 @@ export default function PatientsPage() {
                 </AnimatePresence>
               </motion.div>
 
-              {/* Patients Table */}
+              {/* Appointments Table */}
               <motion.div
-                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl  border border-gray-200/50 dark:border-gray-700/50 overflow-hidden mb-6"
+                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden mb-6"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
@@ -448,30 +509,28 @@ export default function PatientsPage() {
                       />
                     </motion.div>
                   </motion.div>
-                ) : patients.length === 0 ? (
+                ) : appointments.length === 0 ? (
                   <motion.div
                     className="text-center py-12"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                   >
-                    <User className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                    <Calendar className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                      No patients found
+                      No appointments found
                     </h3>
                     <p className="text-gray-500 dark:text-gray-400 mb-4">
-                      {searchTerm ||
-                      statusFilter !== "all" ||
-                      genderFilter !== "all"
+                      {searchTerm || statusFilter !== "all" || dateFilter
                         ? "Try adjusting your search criteria"
-                        : "Get started by adding your first patient"}
+                        : "No appointments scheduled yet"}
                     </p>
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-800 to-gray-600 hover:from-gray-900 hover:to-gray-700 text-white font-medium rounded-lg transition-all duration-300 cursor-pointer"
+                      className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-medium rounded-lg transition-all duration-300 cursor-pointer"
                     >
                       <Plus size={20} className="mr-2" />
-                      Add New Patient
+                      Create New Appointment
                     </motion.button>
                   </motion.div>
                 ) : (
@@ -485,25 +544,25 @@ export default function PatientsPage() {
                               onChange={(e) =>
                                 setSelectedIds(
                                   e.target.checked
-                                    ? patients.map((p) => p.id)
+                                    ? appointments.map((a) => a.id)
                                     : []
                                 )
                               }
                               checked={
-                                patients.length > 0 &&
-                                selectedIds.length === patients.length
+                                appointments.length > 0 &&
+                                selectedIds.length === appointments.length
                               }
-                              className="rounded border-gray-300 text-gray-800 focus:ring-gray-800 dark:border-gray-600 dark:bg-gray-700 cursor-pointer"
+                              className="rounded border-gray-300 text-gray-600 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 cursor-pointer"
                             />
+                          </th>
+                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Appointment
                           </th>
                           <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             Patient
                           </th>
                           <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Contact
-                          </th>
-                          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Gender
+                            Doctor
                           </th>
                           <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             Status
@@ -514,9 +573,9 @@ export default function PatientsPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {patients.map((patient, index) => (
+                        {appointments.map((appointment, index) => (
                           <motion.tr
-                            key={patient.id}
+                            key={appointment.id}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
@@ -525,64 +584,67 @@ export default function PatientsPage() {
                             <td className="px-6 py-4">
                               <input
                                 type="checkbox"
-                                checked={selectedIds.includes(patient.id)}
-                                onChange={() => toggleSelect(patient.id)}
-                                className="rounded border-gray-300 text-gray-800 focus:ring-gray-800 dark:border-gray-600 dark:bg-gray-700 cursor-pointer"
+                                checked={selectedIds.includes(appointment.id)}
+                                onChange={() => toggleSelect(appointment.id)}
+                                className="rounded border-gray-300 text-gray-600 focus:ring-gray-500 dark:border-gray-600 dark:bg-gray-700 cursor-pointer"
                               />
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex items-center">
-                                <div className="flex-shrink-0 h-10 w-10">
-                                  {patient.profile_picture ? (
-                                    <motion.img
-                                      whileHover={{ scale: 1.1 }}
-                                      className="h-10 w-10 rounded-full object-cover shadow-lg"
-                                      src={patient.profile_picture}
-                                      alt=""
-                                    />
-                                  ) : (
-                                    <motion.div
-                                      whileHover={{ scale: 1.1 }}
-                                      className="h-10 w-10 rounded-full bg-gradient-to-br from-gray-800 to-gray-600 flex items-center justify-center text-white font-medium text-sm shadow-lg"
-                                    >
-                                      {getInitials(
-                                        patient.patient_details?.full_name
-                                      )}
-                                    </motion.div>
-                                  )}
+                                <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-gray-500 to-gray-600 rounded-full flex items-center justify-center text-white font-medium text-sm shadow-lg">
+                                  <Calendar size={16} />
                                 </div>
                                 <div className="ml-4">
                                   <div className="text-sm font-medium text-gray-900 dark:text-white">
-                                    {patient.patient_details?.full_name ||
-                                      "Unknown"}
+                                    {formatDate(appointment.appointment_date)}
                                   </div>
-                                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                                    ID: {patient.un_id || "N/A"}
+                                  <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center mt-1">
+                                    <Clock size={14} className="mr-1" />
+                                    {formatTime(appointment.appointment_time)}
                                   </div>
                                 </div>
                               </div>
                             </td>
                             <td className="px-6 py-4">
-                              <div className="text-sm text-gray-900 dark:text-white">
-                                {patient.patient_details?.email || "No email"}
-                              </div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center mt-1">
-                                <Phone size={14} className="mr-1" />
-                                {patient.phone_number || "No phone"}
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0 h-8 w-8 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                                  {getInitials(appointment.patient?.full_name)}
+                                </div>
+                                <div className="ml-3">
+                                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                    {appointment.patient?.full_name ||
+                                      "Unknown Patient"}
+                                  </div>
+                                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                                    {appointment.patient?.phone_number}
+                                  </div>
+                                </div>
                               </div>
                             </td>
                             <td className="px-6 py-4">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 dark:from-amber-900/40 dark:to-orange-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                                {patient.patient_details?.gender || "Unknown"}
-                              </span>
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0 h-8 w-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                                  {getInitials(appointment.doctor?.full_name)}
+                                </div>
+                                <div className="ml-3">
+                                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                    {appointment.doctor?.full_name ||
+                                      "Unknown Doctor"}
+                                  </div>
+                                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                                    {appointment.doctor?.specialization}
+                                  </div>
+                                </div>
+                              </div>
                             </td>
                             <td className="px-6 py-4">
                               <span
                                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                                  "active"
+                                  appointment.status
                                 )}`}
                               >
-                                Active
+                                {appointment.status.charAt(0).toUpperCase() +
+                                  appointment.status.slice(1)}
                               </span>
                             </td>
                             <td className="px-6 py-4 text-right">
@@ -590,8 +652,10 @@ export default function PatientsPage() {
                                 <motion.button
                                   whileHover={{ scale: 1.1 }}
                                   whileTap={{ scale: 0.9 }}
-                                  onClick={() => setViewPatient(patient)}
-                                  className="p-2 text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 transition-all duration-300 cursor-pointer"
+                                  onClick={() =>
+                                    fetchAppointmentDetails(appointment.id)
+                                  }
+                                  className="p-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300 transition-all duration-300 cursor-pointer"
                                   title="View Details"
                                 >
                                   <Eye size={18} />
@@ -599,7 +663,7 @@ export default function PatientsPage() {
                                 <motion.button
                                   whileHover={{ scale: 1.1 }}
                                   whileTap={{ scale: 0.9 }}
-                                  onClick={() => toggleSelect(patient.id)}
+                                  onClick={() => toggleSelect(appointment.id)}
                                   className="p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-all duration-300 cursor-pointer"
                                   title="Delete"
                                 >
@@ -616,9 +680,9 @@ export default function PatientsPage() {
               </motion.div>
 
               {/* Pagination Component */}
-              {patients.length > 0 && (
+              {appointments.length > 0 && (
                 <motion.div
-                  className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl  border border-gray-200/50 dark:border-gray-700/50 p-6"
+                  className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-6"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.8 }}
@@ -633,7 +697,7 @@ export default function PatientsPage() {
                         pagination.currentPage * pagination.itemsPerPage,
                         pagination.totalItems
                       )}{" "}
-                      of {pagination.totalItems} patients
+                      of {pagination.totalItems} appointments
                     </div>
 
                     <div className="flex items-center space-x-1">
@@ -670,7 +734,7 @@ export default function PatientsPage() {
                           onClick={() => handlePageChange(pageNum)}
                           className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-300 cursor-pointer ${
                             pageNum === pagination.currentPage
-                              ? "bg-gradient-to-r from-gray-800 to-gray-600 border-transparent text-white shadow-lg"
+                              ? "bg-gradient-to-r from-gray-600 to-gray-700 border-transparent text-white shadow-lg"
                               : "border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 backdrop-blur-sm"
                           }`}
                         >
@@ -714,9 +778,9 @@ export default function PatientsPage() {
                             ...prev,
                             itemsPerPage: newLimit,
                           }));
-                          fetchPatients(1);
+                          fetchAppointments(1);
                         }}
-                        className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-800 focus:border-transparent cursor-pointer backdrop-blur-sm"
+                        className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-transparent cursor-pointer backdrop-blur-sm"
                       >
                         <option value="5">5</option>
                         <option value="10">10</option>
@@ -732,6 +796,7 @@ export default function PatientsPage() {
           </div>
         </div>
       </main>
+
       {/* Fixed Confirm Delete Modal */}
       <AnimatePresence>
         {confirmOpen && (
@@ -761,7 +826,7 @@ export default function PatientsPage() {
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
                   Are you sure you want to delete {selectedIds.length}{" "}
-                  patient(s)? This action cannot be undone.
+                  appointment(s)? This action cannot be undone.
                 </p>
                 <div className="flex gap-3 justify-center">
                   <motion.button
@@ -787,9 +852,9 @@ export default function PatientsPage() {
         )}
       </AnimatePresence>
 
-      {/* Fixed Patient Details Modal */}
+      {/* Fixed Appointment Details Modal */}
       <AnimatePresence>
-        {viewPatient && (
+        {viewAppointment && (
           <motion.div
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
             initial={{ opacity: 0 }}
@@ -800,17 +865,17 @@ export default function PatientsPage() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl transform transition-all max-h-[90vh] overflow-hidden border border-gray-200/50 dark:border-gray-700/50"
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl transform transition-all max-h-[90vh] overflow-hidden border border-gray-200/50 dark:border-gray-700/50 flex flex-col"
             >
               <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                    Patient Details
+                    Appointment Details
                   </h3>
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => setViewPatient(null)}
+                    onClick={() => setViewAppointment(null)}
                     className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-300 cursor-pointer"
                   >
                     <svg
@@ -830,115 +895,197 @@ export default function PatientsPage() {
                 </div>
               </div>
 
-              <div className="p-6 overflow-y-auto">
-                <div className="flex items-start space-x-6 mb-6">
+              <div className="p-6 overflow-y-auto  flex-1">
+                {/* Appointment Overview */}
+                <div className="flex items-start space-x-6 mb-8">
                   <div className="flex-shrink-0">
-                    {viewPatient.profile_picture ? (
-                      <motion.img
-                        whileHover={{ scale: 1.1 }}
-                        className="h-20 w-20 rounded-full object-cover shadow-lg"
-                        src={viewPatient.profile_picture}
-                        alt=""
-                      />
-                    ) : (
-                      <motion.div
-                        whileHover={{ scale: 1.1 }}
-                        className="h-20 w-20 rounded-full bg-gradient-to-br from-gray-800 to-gray-600 flex items-center justify-center text-white font-medium text-2xl shadow-lg"
-                      >
-                        {getInitials(viewPatient.patient_details?.full_name)}
-                      </motion.div>
-                    )}
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      className="h-20 w-20 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white font-medium text-2xl shadow-lg"
+                    >
+                      <Calendar size={32} />
+                    </motion.div>
                   </div>
                   <div className="flex-1">
-                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                      {viewPatient.patient_details?.full_name || "Unknown"}
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      Appointment #{viewAppointment.id.slice(0, 8)}
                     </h4>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 dark:from-amber-900/40 dark:to-orange-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                        Patient ID: {viewPatient.un_id || "N/A"}
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 dark:from-gray-900/40 dark:to-gray-800/40 dark:text-gray-300 border border-gray-200 dark:border-gray-800">
+                        {formatDate(viewAppointment.appointment_date)} at{" "}
+                        {formatTime(viewAppointment.appointment_time)}
                       </span>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 dark:from-emerald-900/40 dark:to-teal-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                        Active
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                          viewAppointment.status
+                        )}`}
+                      >
+                        {viewAppointment.status.charAt(0).toUpperCase() +
+                          viewAppointment.status.slice(1)}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center text-sm">
-                      <Mail className="w-4 h-4 text-gray-400 mr-3" />
-                      <span className="text-gray-600 dark:text-gray-400">
-                        Email:
-                      </span>
-                      <span className="ml-2 text-gray-900 dark:text-white">
-                        {viewPatient.patient_details?.email || "Not provided"}
-                      </span>
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <Phone className="w-4 h-4 text-gray-400 mr-3" />
-                      <span className="text-gray-600 dark:text-gray-400">
-                        Phone:
-                      </span>
-                      <span className="ml-2 text-gray-900 dark:text-white">
-                        {viewPatient.phone_number || "Not provided"}
-                      </span>
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <User className="w-4 h-4 text-gray-400 mr-3" />
-                      <span className="text-gray-600 dark:text-gray-400">
-                        Gender:
-                      </span>
-                      <span className="ml-2 text-gray-900 dark:text-white">
-                        {viewPatient.patient_details?.gender || "Not provided"}
-                      </span>
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <Calendar className="w-4 h-4 text-gray-400 mr-3" />
-                      <span className="text-gray-600 dark:text-gray-400">
-                        Date of Birth:
-                      </span>
-                      <span className="ml-2 text-gray-900 dark:text-white">
-                        {viewPatient.patient_details?.date_of_birth ||
-                          "Not provided"}
-                      </span>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Patient Information */}
+                  <div className="space-y-6">
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                      <User className="w-5 h-5 mr-2" />
+                      Patient Information
+                    </h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Full Name
+                        </label>
+                        <p className="text-gray-900 dark:text-white">
+                          {viewAppointment.patient?.full_name}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Email
+                          </label>
+                          <p className="text-gray-900 dark:text-white">
+                            {viewAppointment.patient?.email || "N/A"}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Phone
+                          </label>
+                          <p className="text-gray-900 dark:text-white">
+                            {viewAppointment.patient?.phone_number}
+                          </p>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Gender
+                        </label>
+                        <p className="text-gray-900 dark:text-white">
+                          {viewAppointment.patient?.gender || "N/A"}
+                        </p>
+                      </div>
+                      {viewAppointment.patient?.date_of_birth && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Date of Birth
+                          </label>
+                          <p className="text-gray-900 dark:text-white">
+                            {formatDate(viewAppointment.patient.date_of_birth)}
+                          </p>
+                        </div>
+                      )}
+                      {viewAppointment.patient?.address && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Address
+                          </label>
+                          <p className="text-gray-900 dark:text-white">
+                            {viewAppointment.patient.address}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="flex items-center text-sm">
-                      <Droplets className="w-4 h-4 text-gray-400 mr-3" />
-                      <span className="text-gray-600 dark:text-gray-400">
-                        Blood Group:
-                      </span>
-                      <span className="ml-2 text-gray-900 dark:text-white">
-                        {viewPatient.patient_details?.blood_group ||
-                          "Not provided"}
-                      </span>
-                    </div>
-                    <div className="flex items-start text-sm">
-                      <MapPin className="w-4 h-4 text-gray-400 mr-3 mt-0.5" />
+                  {/* Doctor Information */}
+                  <div className="space-y-6">
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                      <Stethoscope className="w-5 h-5 mr-2" />
+                      Doctor Information
+                    </h4>
+                    <div className="space-y-4">
                       <div>
-                        <span className="text-gray-600 dark:text-gray-400">
-                          Address:
-                        </span>
-                        <div className="ml-2 text-gray-900 dark:text-white">
-                          {viewPatient.patient_details?.address ||
-                            "Not provided"}
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Full Name
+                        </label>
+                        <p className="text-gray-900 dark:text-white">
+                          {viewAppointment.doctor?.full_name}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Email
+                          </label>
+                          <p className="text-gray-900 dark:text-white">
+                            {viewAppointment.doctor?.email || "N/A"}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Phone
+                          </label>
+                          <p className="text-gray-900 dark:text-white">
+                            {viewAppointment.doctor?.phone_number}
+                          </p>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Specialization
+                        </label>
+                        <p className="text-gray-900 dark:text-white">
+                          {viewAppointment.doctor?.specialization}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                          Clinic
+                        </label>
+                        <p className="text-gray-900 dark:text-white">
+                          {viewAppointment.doctor?.clinic_name}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {viewAppointment.doctor?.clinic_address}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Experience
+                          </label>
+                          <p className="text-gray-900 dark:text-white">
+                            {viewAppointment.doctor?.experience_years} years
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Consultation Fee
+                          </label>
+                          <p className="text-gray-900 dark:text-white flex items-center">
+                            <IndianRupee size={14} className="mr-1" />
+                            {viewAppointment.doctor?.consultation_fee}
+                          </p>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center text-sm">
-                      <AlertTriangle className="w-4 h-4 text-gray-400 mr-3" />
-                      <span className="text-gray-600 dark:text-gray-400">
-                        Emergency Contact:
-                      </span>
-                      <span className="ml-2 text-gray-900 dark:text-white">
-                        {viewPatient.patient_details?.emergency_contact ||
-                          "Not provided"}
-                      </span>
-                    </div>
                   </div>
+                </div>
+
+                {/* Disease Information */}
+                <div className="space-y-4">
+                  {Object.entries(viewAppointment.disease_info || {}).map(
+                    ([key, value]) => (
+                      <div
+                        key={key}
+                        className="p-3 bg-white/50 dark:bg-gray-800/40 rounded-lg shadow-sm border border-gray-200/30 dark:border-gray-700/30"
+                      >
+                        <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-100 capitalize mb-1">
+                          {key.replace(/_/g, " ")}
+                        </h5>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                          {typeof value === "object"
+                            ? JSON.stringify(value, null, 2)
+                            : value || "N/A"}
+                        </p>
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
 
@@ -947,8 +1094,8 @@ export default function PatientsPage() {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setViewPatient(null)}
-                    className="px-6 py-2 bg-gradient-to-r from-gray-800 to-gray-600 hover:from-gray-900 hover:to-gray-700 text-white font-medium rounded-lg transition-all duration-300 cursor-pointer"
+                    onClick={() => setViewAppointment(null)}
+                    className="px-6 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-medium rounded-lg transition-all duration-300 cursor-pointer"
                   >
                     Close
                   </motion.button>

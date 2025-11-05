@@ -58,22 +58,22 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 p-4">
+    <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
       <Toaster 
         position="top-center"
         toastOptions={{
           duration: 4000,
           style: {
-            background: '#1e40af',
+            background: '#0c0c0cff',
             color: '#fff',
           },
         }}
       />
       
-      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 transition-all duration-300 hover:shadow-blue-500/10">
+      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 transition-all duration-300 hover:shadow-gray-500/10">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
@@ -95,7 +95,7 @@ export default function AdminLogin() {
                 placeholder="Enter phone number"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full p-4 pl-12 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all duration-200"
+                className="w-full p-4 pl-12 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-4 focus:ring-gray-500/20 focus:border-gray-500 dark:bg-gray-700 dark:text-white transition-all duration-200"
                 onKeyPress={(e) => e.key === 'Enter' && handleSendOtp()}
               />
               <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -108,7 +108,7 @@ export default function AdminLogin() {
             <button
               onClick={handleSendOtp}
               disabled={loading}
-              className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-xl font-semibold shadow-lg hover:shadow-blue-500/25 transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center space-x-2"
+              className="w-full py-4 bg-gray-800 hover:bg-gray-900 disabled:bg-gray-400 text-white rounded-xl font-semibold shadow-lg hover:shadow-gray-500/25 transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center space-x-2"
             >
               {loading ? (
                 <>
@@ -134,7 +134,7 @@ export default function AdminLogin() {
                 placeholder="Enter 6-digit OTP"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full p-4 pl-12 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-all duration-200 text-center text-xl tracking-widest"
+                className="w-full p-4 pl-4 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-4 focus:ring-gray-500/20 focus:border-gray-500 dark:bg-gray-700 dark:text-white transition-all duration-200 text-center text-xl tracking-widest"
                 maxLength={6}
                 onKeyPress={(e) => e.key === 'Enter' && handleVerifyOtp()}
               />
@@ -156,7 +156,7 @@ export default function AdminLogin() {
               <button
                 onClick={handleVerifyOtp}
                 disabled={loading}
-                className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-xl font-semibold shadow-lg hover:shadow-blue-500/25 transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center space-x-2"
+                className="flex-1 py-4 bg-gray-800 hover:bg-gray-900 disabled:bg-gray-400 text-white rounded-xl font-semibold shadow-lg hover:shadow-gray-500/25 transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center space-x-2"
               >
                 {loading ? (
                   <>
@@ -178,7 +178,7 @@ export default function AdminLogin() {
               <button
                 onClick={handleSendOtp}
                 disabled={loading}
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium transition-colors duration-200"
+                className="text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm font-medium transition-colors duration-200"
               >
                 Resend OTP
               </button>

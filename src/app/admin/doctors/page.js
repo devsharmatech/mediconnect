@@ -1494,8 +1494,8 @@ export default function DoctorsPage() {
     <>
       <main className="flex-1 overflow-auto relative z-0">
         <div className="p-4 md:p-6 lg:p-8 bg-transparent">
-          <div className="bg-white dark:bg-gray-900/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700/50">
-            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-black p-6">
+          <div className="bg-white dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-50 dark:border-gray-700/50">
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 rounded-2xl to-gray-100 dark:from-gray-900 dark:to-gray-800 p-6">
               {/* Header Section */}
               <motion.div
                 className="mb-8"
@@ -1550,14 +1550,14 @@ export default function DoctorsPage() {
                     value: pagination.totalItems,
                     icon: User,
                     color:
-                      "from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900",
+                      "from-gray-500 to-gray-600 dark:from-gray-800 dark:to-gray-900 text-gray-50",
                   },
                   {
                     label: "Active Doctors",
                     value: doctors.filter((d) => d.status === 1).length,
                     icon: CheckCircle,
                     color:
-                      "from-green-100 to-green-200 dark:from-green-800 dark:to-green-900",
+                      "from-green-500 to-green-600 dark:from-gray-800 dark:to-gray-900 text-gray-50",
                   },
                   {
                     label: "Pending Approval",
@@ -1566,14 +1566,14 @@ export default function DoctorsPage() {
                     ).length,
                     icon: AlertTriangle,
                     color:
-                      "from-yellow-100 to-yellow-200 dark:from-yellow-800 dark:to-yellow-900",
+                      "from-yellow-500 to-yellow-600 dark:from-yellow-800 dark:to-yellow-900 text-gray-50",
                   },
                   {
                     label: "Current Page",
                     value: `${pagination.currentPage}/${pagination.totalPages}`,
                     icon: Calendar,
                     color:
-                      "from-blue-100 to-blue-200 dark:from-blue-800 dark:to-blue-900",
+                      "from-blue-500 to-blue-600 dark:from-blue-800 dark:to-blue-900 text-gray-50",
                   },
                 ].map((stat, index) => (
                   <motion.div
@@ -1594,7 +1594,7 @@ export default function DoctorsPage() {
                       <div
                         className={`p-3 bg-gradient-to-r ${stat.color} rounded-xl shadow-lg border border-gray-300 dark:border-gray-600`}
                       >
-                        <stat.icon className="w-6 h-6 text-gray-700 dark:text-white" />
+                        <stat.icon className="w-6 h-6 text-gray-20 dark:text-white" />
                       </div>
                     </div>
                   </motion.div>
@@ -1659,15 +1659,6 @@ export default function DoctorsPage() {
                     >
                       <Filter size={20} />
                     </motion.button>
-
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="p-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-300 cursor-pointer backdrop-blur-sm"
-                    >
-                      <Download size={20} />
-                    </motion.button>
-
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}

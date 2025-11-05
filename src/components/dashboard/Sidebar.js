@@ -14,9 +14,12 @@ import {
   Activity,
   Calendar,
   LogOut,
-  User
+  User,
+  TestTube,
+  Microscope
 } from "lucide-react";
-import { getLoggedInUser } from "@/lib/authHelpers";
+
+import { getLoggedInUser,logoutUser } from "@/lib/authHelpers";
 
 export default function Sidebar({ open, mobileOpen, onToggle, onCloseMobile }) {
   const [role, setRole] = useState("admin");
@@ -50,14 +53,14 @@ export default function Sidebar({ open, mobileOpen, onToggle, onCloseMobile }) {
       path: `/admin/appointments`,
     },
     { 
-      name: "Medicines", 
+      name: "Chemists", 
       icon: <Pill size={22} />, 
-      path: `/admin/medicines`,
+      path: `/admin/chemists`,
     },
     { 
-      name: "Health Records", 
-      icon: <Activity size={22} />, 
-      path: `/admin/records`,
+      name: "Labs", 
+      icon: <Microscope size={22} />, 
+      path: `/admin/labs`,
     },
     { 
       name: "Orders", 
@@ -71,9 +74,8 @@ export default function Sidebar({ open, mobileOpen, onToggle, onCloseMobile }) {
     },
   ];
 
-  const handleLogout = () => {
-    localStorage.removeItem("admin");
-    window.location.href = "/admin/login";
+  const handleLogout = (role) => {
+    logoutUser(role);
   };
 
   const handleNavigation = (path) => {
@@ -182,7 +184,9 @@ export default function Sidebar({ open, mobileOpen, onToggle, onCloseMobile }) {
             )}
           </div>
           <button
-            onClick={handleLogout}
+            onClick={()=>{
+                                handleLogout('admin')
+                              }}
             className={`
               group flex items-center w-full p-3 rounded-lg
               bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400

@@ -1,4 +1,3 @@
-import { supabase } from "@/lib/supabaseClient";
 
 // Send OTP
 export const sendOtp = async (phone_number, role) => {
@@ -36,4 +35,5 @@ export const setLoggedInUser = (role, user) => {
 export const logoutUser = (role) => {
   if (typeof window === "undefined") return;
   localStorage.removeItem(`${role}User`);
+  window.location.href = `/${role}/login`;
 };
