@@ -74,7 +74,7 @@ export default function Page() {
       </nav>
 
       {/* Main Content */}
-      <main className="h-[calc(100vh-140px)]">
+      <main className="h-[calc(100vh-80px)]">
         {appointmentId ? (
           <CompactVideoCall
             appointmentId={appointmentId}
