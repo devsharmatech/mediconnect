@@ -9,7 +9,10 @@ export async function POST(req) {
 
     if (!patient_id || !initial_symptoms) {
       return NextResponse.json(
-        { status:false, message: "Missing required fields: patient_id, initial_symptoms" },
+        {
+          status: false,
+          message: "Missing required fields: patient_id, initial_symptoms",
+        },
         { status: 400 }
       );
     }
@@ -51,16 +54,18 @@ Return valid JSON only in this format:
       throw new Error("AI response missing 'questions' field");
     }
 
-    const { error: dbError } = await supabase.from("screening_sessions").insert([
-      {
-        id: screening_id,
-        patient_id,
-        status: "in_progress",
-        initial_symptoms,
-        questions: aiData.questions,
-        created_at: new Date(),
-      },
-    ]);
+    const { error: dbError } = await supabase
+      .from("screening_sessions")
+      .insert([
+        {
+          id: screening_id,
+          patient_id,
+          status: "in_progress",
+          initial_symptoms,
+          questions: aiData.questions,
+          created_at: new Date(),
+        },
+      ]);
 
     if (dbError) {
       console.error("Supabase insert error:", dbError);
@@ -76,7 +81,8 @@ Return valid JSON only in this format:
     console.error("API Error:", error);
     return NextResponse.json(
       {
-        status: false, message: error.message || "Unknown Server Error",
+        status: false,
+        message: error.message || "Unknown Server Error",
       },
       { status: 500 }
     );

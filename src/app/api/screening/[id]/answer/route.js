@@ -21,7 +21,7 @@ export async function POST(req, { params }) {
 
     if (screeningError || !screening) {
       return NextResponse.json(
-        { status:false, message: "Screening not found" },
+        { status:false, message: "Screening not found " },
         { status: 404 }
       );
     }
@@ -59,6 +59,7 @@ Now analyze this information and return a JSON object with:
       .update({
         status: "complete",
         analysis: aiData,
+        answers: answers,
         updated_at: new Date(),
       })
       .eq("id", screening_id);
