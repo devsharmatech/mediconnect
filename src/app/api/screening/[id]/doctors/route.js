@@ -8,7 +8,6 @@ export async function OPTIONS() {
 
 export async function GET(req, { params }) {
   try {
-
     const { id } = await params;
     const screening_id = id;
 
@@ -42,19 +41,28 @@ export async function GET(req, { params }) {
     const combinedOr = [...ilikeConditions, ...tagsCondition].join(",");
     const { data: doctors, error: doctorsError } = await supabase
       .from("doctor_details")
-      .select(`
+      .select(
+        `
         id,
         full_name,
         email,
         specialization,
-        speciality_tags,
         experience_years,
+        license_number,
         clinic_name,
         clinic_address,
         consultation_fee,
+        qualification,
+        indemnity_insurance,
+        dmc_mci_certificate,
+        aadhaar_pan_license,
+        address_proof,
+        passport_photo,
+        bank_account_details,
+        digital_consent,
+        onboarding_status,
         rating,
         total_reviews,
-        onboarding_status,
         available_days,
         available_time,
         latitude,
@@ -64,7 +72,8 @@ export async function GET(req, { params }) {
           profile_picture,
           role
         )
-      `)
+      `
+      )
       .eq("users.role", "doctor")
       .eq("onboarding_status", "approved")
       .or(combinedOr)
@@ -85,7 +94,6 @@ export async function GET(req, { params }) {
       );
     }
 
-    // Remove duplicates if needed
     const uniqueDoctors = Array.from(
       new Map(doctors.map((doc) => [doc.id, doc])).values()
     );
