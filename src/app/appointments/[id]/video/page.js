@@ -16,8 +16,10 @@ import {
   PhoneXMarkIcon,
   ShieldCheckIcon,
   ClockIcon,
-  UserCircleIcon
+  UserCircleIcon,
+  ExclamationTriangleIcon
 } from "@heroicons/react/24/outline";
+import toast, { Toaster } from 'react-hot-toast';
 
 // Create custom slash icons since they don't exist in Heroicons
 const MicrophoneSlashIcon = (props) => (
@@ -91,6 +93,32 @@ export default function Page() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#10B981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 5000,
+            iconTheme: {
+              primary: '#EF4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+
       {/* Enhanced Header matching your navbar */}
       <nav className="bg-white/80 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -225,12 +253,50 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
   const localTracks = useRef({ audio: null, video: null });
   const remoteContainerRef = useRef(null);
   const localContainerRef = useRef(null);
+  const remoteUsersRef = useRef(new Set()); // Track remote users to prevent duplicate cleanup
 
   const [joined, setJoined] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [loading, setLoading] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const [permissionError, setPermissionError] = useState(false);
+
+  // Safe DOM cleanup functions
+  const safeRemoveElement = (elementId) => {
+    try {
+      const element = document.getElementById(elementId);
+      if (element && element.parentNode) {
+        element.parentNode.removeChild(element);
+      }
+    } catch (error) {
+      console.warn(`Could not remove element ${elementId}:`, error);
+    }
+  };
+
+  const safeClearContainer = (containerRef) => {
+    if (!containerRef?.current) return;
+    
+    try {
+      // Create a safe removal method
+      while (containerRef.current.firstChild) {
+        const child = containerRef.current.firstChild;
+        if (child.parentNode === containerRef.current) {
+          containerRef.current.removeChild(child);
+        } else {
+          break; // Prevent infinite loop if child is not in container
+        }
+      }
+    } catch (error) {
+      console.warn('Error clearing container:', error);
+      // Fallback: replace innerHTML if removeChild fails
+      try {
+        containerRef.current.innerHTML = '';
+      } catch (fallbackError) {
+        console.error('Failed to clear container with fallback:', fallbackError);
+      }
+    }
+  };
 
   // Call timer
   useEffect(() => {
@@ -240,7 +306,9 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
         setCallDuration(prev => prev + 1);
       }, 1000);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [joined]);
 
   const formatTime = (seconds) => {
@@ -250,13 +318,89 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
   };
 
   const loadAgora = async () => {
-    const { default: AgoraRTC } = await import("agora-rtc-sdk-ng");
-    return AgoraRTC;
+    try {
+      const { default: AgoraRTC } = await import("agora-rtc-sdk-ng");
+      return AgoraRTC;
+    } catch (error) {
+      console.error('Failed to load Agora SDK:', error);
+      toast.error('Failed to load video call service. Please refresh the page.');
+      throw error;
+    }
+  };
+
+  const checkMediaPermissions = async () => {
+    try {
+      // Check camera permissions
+      const cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      cameraStream.getTracks().forEach(track => track.stop());
+
+      // Check microphone permissions
+      const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStream.getTracks().forEach(track => track.stop());
+
+      return true;
+    } catch (error) {
+      console.error('Media permission error:', error);
+      return false;
+    }
+  };
+
+  const createTracksWithFallback = async (AgoraRTC) => {
+    try {
+      // Try to create both audio and video tracks
+      const [mic, cam] = await AgoraRTC.createMicrophoneAndCameraTracks();
+      return { mic, cam, error: null };
+    } catch (error) {
+      console.warn('Failed to create both tracks, trying fallback:', error);
+
+      // Fallback: Try to create tracks individually
+      let mic = null;
+      let cam = null;
+      const errors = [];
+
+      try {
+        mic = await AgoraRTC.createMicrophoneAudioTrack();
+      } catch (micError) {
+        console.error('Failed to create microphone track:', micError);
+        errors.push(`Microphone: ${micError.message}`);
+        toast.error('Cannot access microphone. Please check permissions.');
+      }
+
+      try {
+        cam = await AgoraRTC.createCameraVideoTrack();
+      } catch (camError) {
+        console.error('Failed to create camera track:', camError);
+        errors.push(`Camera: ${camError.message}`);
+        toast.error('Cannot access camera. Please check permissions.');
+      }
+
+      if (!mic && !cam) {
+        throw new Error(`No media devices available: ${errors.join(', ')}`);
+      }
+
+      return { mic, cam, error: errors.length > 0 ? errors.join(', ') : null };
+    }
   };
 
   const joinCall = async () => {
     setLoading(true);
+    setPermissionError(false);
+    
     try {
+      // Check if browser supports media devices
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Your browser does not support video calling. Please use a modern browser like Chrome, Firefox, or Safari.');
+      }
+
+      // Check basic permissions first
+      const hasPermissions = await checkMediaPermissions();
+      if (!hasPermissions) {
+        setPermissionError(true);
+        toast.error('Please allow camera and microphone permissions to join the call.');
+        return;
+      }
+
+      // Generate token
       const res = await fetch("/api/agora/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -266,23 +410,36 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
           role: "publisher",
         }),
       });
+
+      if (!res.ok) {
+        throw new Error(`Failed to generate token: ${res.status} ${res.statusText}`);
+      }
+
       const data = await res.json();
-      if (!data.status) throw new Error(data.message);
+      if (!data.status) {
+        throw new Error(data.message || "Failed to generate authentication token");
+      }
 
       const { appId, token } = data;
       const AgoraRTC = await loadAgora();
+      
+      // Create client and join channel
       const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
       clientRef.current = client;
 
       await client.join(appId, channelName, token, userId);
+      toast.success('Successfully joined the call!');
 
-      const [mic, cam] = await AgoraRTC.createMicrophoneAndCameraTracks();
+      // Create media tracks with fallback
+      const { mic, cam, error: trackError } = await createTracksWithFallback(AgoraRTC);
+      
       localTracks.current.audio = mic;
       localTracks.current.video = cam;
 
+      // Setup local video view
       const localView = localContainerRef.current;
-      if (localView) {
-        localView.innerHTML = "";
+      if (localView && cam) {
+        safeClearContainer(localContainerRef);
         const el = document.createElement("div");
         el.id = "local-player";
         el.className = "w-full h-full rounded-xl overflow-hidden";
@@ -290,68 +447,202 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
         cam.play(el);
       }
 
-      await client.publish([mic, cam]);
-      setJoined(true);
+      // Publish available tracks
+      const tracksToPublish = [];
+      if (mic) tracksToPublish.push(mic);
+      if (cam) tracksToPublish.push(cam);
 
+      if (tracksToPublish.length > 0) {
+        await client.publish(tracksToPublish);
+      }
+
+      if (trackError) {
+        toast.error(`Some media devices unavailable: ${trackError}`);
+      }
+
+      setJoined(true);
+      remoteUsersRef.current.clear(); // Reset remote users tracking
+
+      // Handle remote users
       client.on("user-published", async (user, mediaType) => {
-        await client.subscribe(user, mediaType);
-        if (mediaType === "video") {
-          const remoteView = remoteContainerRef.current;
-          if (remoteView) {
-            const el = document.createElement("div");
-            el.id = `remote-${user.uid}`;
-            el.className = "w-full h-full rounded-xl overflow-hidden";
-            remoteView.appendChild(el);
-            user.videoTrack.play(el);
+        try {
+          await client.subscribe(user, mediaType);
+          
+          if (mediaType === "video") {
+            const remoteView = remoteContainerRef.current;
+            if (remoteView && user.videoTrack) {
+              // Check if user already has a video element
+              const existingElement = document.getElementById(`remote-${user.uid}`);
+              if (existingElement) {
+                safeRemoveElement(`remote-${user.uid}`);
+              }
+
+              const el = document.createElement("div");
+              el.id = `remote-${user.uid}`;
+              el.className = "w-full h-full rounded-xl overflow-hidden";
+              remoteView.appendChild(el);
+              user.videoTrack.play(el);
+              remoteUsersRef.current.add(user.uid);
+              toast.success('Participant joined the call');
+            }
           }
+          
+          if (mediaType === "audio" && user.audioTrack) {
+            user.audioTrack.play();
+          }
+        } catch (error) {
+          console.error('Error handling remote user:', error);
+          toast.error('Failed to connect with participant');
         }
-        if (mediaType === "audio") user.audioTrack?.play();
       });
 
       client.on("user-left", (user) => {
-        const el = document.getElementById(`remote-${user.uid}`);
-        if (el) el.remove();
+        if (remoteUsersRef.current.has(user.uid)) {
+          safeRemoveElement(`remote-${user.uid}`);
+          remoteUsersRef.current.delete(user.uid);
+          toast('Participant left the call');
+        }
       });
-    } catch (err) {
-      console.error("Join error:", err);
-      alert("Failed to join call: " + err.message);
+
+      client.on("connection-state-change", (curState, prevState) => {
+        console.log('Connection state changed:', prevState, '->', curState);
+        
+        if (curState === 'DISCONNECTED') {
+          toast.error('Connection lost. Attempting to reconnect...');
+        } else if (curState === 'CONNECTED') {
+          toast.success('Connection restored');
+        }
+      });
+
+    } catch (error) {
+      console.error("Join call error:", error);
+      
+      // Specific error handling
+      if (error.name === 'NotAllowedError') {
+        toast.error('Camera/microphone access denied. Please allow permissions and try again.');
+        setPermissionError(true);
+      } else if (error.name === 'NotFoundError') {
+        toast.error('No camera or microphone found. Please check your devices.');
+        setPermissionError(true);
+      } else if (error.name === 'NotReadableError') {
+        toast.error('Camera or microphone is busy. Please close other applications using them.');
+        setPermissionError(true);
+      } else if (error.message.includes('token')) {
+        toast.error('Authentication failed. Please refresh the page.');
+      } else if (error.message.includes('network') || error.message.includes('connection')) {
+        toast.error('Network error. Please check your internet connection.');
+      } else {
+        toast.error(`Failed to join call: ${error.message}`);
+      }
+
+      // Cleanup on error
+      await leaveCall();
     } finally {
       setLoading(false);
     }
   };
 
   const leaveCall = async () => {
-    const client = clientRef.current;
-    if (client) {
-      localTracks.current.audio?.stop();
-      localTracks.current.audio?.close();
-      localTracks.current.video?.stop();
-      localTracks.current.video?.close();
-      await client.unpublish();
-      await client.leave();
+    try {
+      const client = clientRef.current;
+      
+      if (client) {
+        // Remove all event listeners first
+        client.removeAllListeners();
+        
+        // Stop and close all local tracks
+        if (localTracks.current.audio) {
+          localTracks.current.audio.stop();
+          localTracks.current.audio.close();
+          localTracks.current.audio = null;
+        }
+        if (localTracks.current.video) {
+          localTracks.current.video.stop();
+          localTracks.current.video.close();
+          localTracks.current.video = null;
+        }
+
+        // Unpublish and leave
+        await client.unpublish().catch(console.error);
+        await client.leave().catch(console.error);
+        
+        toast('You left the call');
+      }
+
+      // Safe DOM cleanup
+      safeClearContainer(localContainerRef);
+      safeClearContainer(remoteContainerRef);
+      
+      // Clear all remote user elements safely
+      remoteUsersRef.current.forEach(uid => {
+        safeRemoveElement(`remote-${uid}`);
+      });
+      remoteUsersRef.current.clear();
+      
+      setJoined(false);
+      setCallDuration(0);
+      setPermissionError(false);
+    } catch (error) {
+      console.error('Error leaving call:', error);
+      toast.error('Error ending call');
     }
-    if (localContainerRef.current) localContainerRef.current.innerHTML = "";
-    if (remoteContainerRef.current) remoteContainerRef.current.innerHTML = "";
-    setJoined(false);
-    setCallDuration(0);
   };
 
   const toggleMic = async () => {
-    const mic = localTracks.current.audio;
-    if (!mic) return;
-    await mic.setEnabled(!micOn);
-    setMicOn(!micOn);
+    try {
+      const mic = localTracks.current.audio;
+      if (!mic) {
+        toast.error('Microphone not available');
+        return;
+      }
+      await mic.setEnabled(!micOn);
+      setMicOn(!micOn);
+      toast.success(micOn ? 'Microphone muted' : 'Microphone unmuted');
+    } catch (error) {
+      console.error('Error toggling microphone:', error);
+      toast.error('Failed to toggle microphone');
+    }
   };
 
   const toggleCam = async () => {
-    const cam = localTracks.current.video;
-    if (!cam) return;
-    await cam.setEnabled(!camOn);
-    setCamOn(!camOn);
+    try {
+      const cam = localTracks.current.video;
+      if (!cam) {
+        toast.error('Camera not available');
+        return;
+      }
+      await cam.setEnabled(!camOn);
+      setCamOn(!camOn);
+      toast.success(camOn ? 'Camera turned off' : 'Camera turned on');
+    } catch (error) {
+      console.error('Error toggling camera:', error);
+      toast.error('Failed to toggle camera');
+    }
+  };
+
+  const requestPermissions = async () => {
+    try {
+      setPermissionError(false);
+      toast.loading('Requesting camera and microphone permissions...');
+      
+      await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      
+      toast.dismiss();
+      toast.success('Permissions granted! You can now join the call.');
+    } catch (error) {
+      toast.dismiss();
+      toast.error('Please allow permissions in your browser settings.');
+    }
   };
 
   useEffect(() => {
-    return () => leaveCall();
+    return () => {
+      // Use a ref to track if cleanup has already been done
+      const cleanup = async () => {
+        await leaveCall();
+      };
+      cleanup();
+    };
   }, []);
 
   return (
@@ -376,6 +667,31 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
           <div className="font-mono font-semibold text-gray-800">{appointmentId}</div>
         </div>
       </div>
+
+      {/* Permission Error Banner */}
+      {permissionError && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4"
+        >
+          <div className="flex items-center space-x-3">
+            <ExclamationTriangleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
+            <div className="flex-1">
+              <h4 className="text-red-800 font-semibold">Camera/Microphone Access Required</h4>
+              <p className="text-red-600 text-sm mt-1">
+                Please allow camera and microphone permissions to join the video call.
+              </p>
+            </div>
+            <button
+              onClick={requestPermissions}
+              className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
+            >
+              Grant Permissions
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Video Grid */}
       <div className="grid lg:grid-cols-3 gap-6 mb-6">
@@ -422,12 +738,12 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
                   <div className="text-lg font-medium mb-2">Waiting for participant</div>
                   <div className="text-sm">The other participant will appear here once they join</div>
                 </div>
-              ) : (
+              ) : remoteUsersRef.current.size === 0 ? (
                 <div className="text-center text-gray-400">
                   <UserCircleIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
                   <div className="text-sm">Participant connecting...</div>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -442,12 +758,12 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={toggleMic}
-              disabled={!joined}
+              disabled={!joined || !localTracks.current.audio}
               className={`p-4 rounded-2xl transition-all duration-200 ${
                 micOn 
                   ? 'bg-green-500 hover:bg-green-600 text-white shadow-lg' 
                   : 'bg-red-500 hover:bg-red-600 text-white shadow-lg'
-              } ${!joined ? 'opacity-50 cursor-not-allowed' : ''}`}
+              } ${!joined || !localTracks.current.audio ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {micOn ? (
                 <MicrophoneIcon className="w-6 h-6" />
@@ -460,12 +776,12 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={toggleCam}
-              disabled={!joined}
+              disabled={!joined || !localTracks.current.video}
               className={`p-4 rounded-2xl transition-all duration-200 ${
                 camOn 
                   ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg' 
                   : 'bg-red-500 hover:bg-red-600 text-white shadow-lg'
-              } ${!joined ? 'opacity-50 cursor-not-allowed' : ''}`}
+              } ${!joined || !localTracks.current.video ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {camOn ? (
                 <VideoCameraIcon className="w-6 h-6" />
@@ -478,11 +794,12 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={joined ? leaveCall : joinCall}
+              disabled={loading}
               className={`p-4 rounded-2xl transition-all duration-200 ${
                 joined 
                   ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg' 
                   : 'bg-green-500 hover:bg-green-600 text-white shadow-lg'
-              }`}
+              } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {loading ? (
                 <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -497,12 +814,16 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
           {/* Status Indicators */}
           <div className="flex items-center space-x-6 text-sm text-gray-600">
             <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${micOn ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span>Microphone {micOn ? 'On' : 'Off'}</span>
+              <div className={`w-2 h-2 rounded-full ${
+                !localTracks.current.audio ? 'bg-gray-400' : micOn ? 'bg-green-500' : 'bg-red-500'
+              }`}></div>
+              <span>Microphone {!localTracks.current.audio ? 'Unavailable' : micOn ? 'On' : 'Off'}</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${camOn ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span>Camera {camOn ? 'On' : 'Off'}</span>
+              <div className={`w-2 h-2 rounded-full ${
+                !localTracks.current.video ? 'bg-gray-400' : camOn ? 'bg-green-500' : 'bg-red-500'
+              }`}></div>
+              <span>Camera {!localTracks.current.video ? 'Unavailable' : camOn ? 'On' : 'Off'}</span>
             </div>
           </div>
         </div>
