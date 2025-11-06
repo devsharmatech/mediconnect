@@ -3,8 +3,8 @@ import { openai, supabase } from "@/lib/supabaseAdmin";
 
 export async function POST(req, { params }) {
   try {
-    
-    const screening_id = params.id;
+    const { id } = await params;
+    const screening_id = id;
     const body = await req.json();
     const { answers } = body;
 
