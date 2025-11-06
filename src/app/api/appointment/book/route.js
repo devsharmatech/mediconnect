@@ -12,15 +12,16 @@ export async function POST(req) {
     const {
       doctor_id,
       patient_id,
+      screening_id,
       appointment_date,
       appointment_time,
       disease_info
     } = body || {};
 
     // ✅ Validate required fields
-    if (!doctor_id || !patient_id || !appointment_date || !appointment_time) {
+    if (!doctor_id || !patient_id || !appointment_date || !appointment_time || !screening_id) {
       return failure(
-        "doctor_id, patient_id, appointment_date, and appointment_time are required.",
+        "doctor_id, patient_id, appointment_date, appointment_time, and screening_id are required.",
         null,
         400,
         { headers: corsHeaders }
@@ -76,6 +77,7 @@ export async function POST(req) {
         {
           doctor_id,
           patient_id,
+          screening_id,
           appointment_date,
           appointment_time,
           disease_info,
@@ -87,6 +89,7 @@ export async function POST(req) {
         id,
         doctor_id,
         patient_id,
+        screening_id,
         appointment_date,
         appointment_time,
         status,
