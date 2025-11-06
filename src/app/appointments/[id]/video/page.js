@@ -251,9 +251,12 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
   const channelName = `appointment_${appointmentId}`;
   const clientRef = useRef(null);
   const localTracks = useRef({ audio: null, video: null });
-  const remoteContainerRef = useRef(null);
-  const localContainerRef = useRef(null);
-  const remoteUsersRef = useRef(new Set()); // Track remote users to prevent duplicate cleanup
+  
+  // Use separate refs for video elements
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  
+  const remoteUsersRef = useRef(new Map()); // Track remote users with their tracks
 
   const [joined, setJoined] = useState(false);
   const [micOn, setMicOn] = useState(true);
@@ -261,42 +264,7 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
   const [loading, setLoading] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [permissionError, setPermissionError] = useState(false);
-
-  // Safe DOM cleanup functions
-  const safeRemoveElement = (elementId) => {
-    try {
-      const element = document.getElementById(elementId);
-      if (element && element.parentNode) {
-        element.parentNode.removeChild(element);
-      }
-    } catch (error) {
-      console.warn(`Could not remove element ${elementId}:`, error);
-    }
-  };
-
-  const safeClearContainer = (containerRef) => {
-    if (!containerRef?.current) return;
-    
-    try {
-      // Create a safe removal method
-      while (containerRef.current.firstChild) {
-        const child = containerRef.current.firstChild;
-        if (child.parentNode === containerRef.current) {
-          containerRef.current.removeChild(child);
-        } else {
-          break; // Prevent infinite loop if child is not in container
-        }
-      }
-    } catch (error) {
-      console.warn('Error clearing container:', error);
-      // Fallback: replace innerHTML if removeChild fails
-      try {
-        containerRef.current.innerHTML = '';
-      } catch (fallbackError) {
-        console.error('Failed to clear container with fallback:', fallbackError);
-      }
-    }
-  };
+  const [hasRemoteUser, setHasRemoteUser] = useState(false);
 
   // Call timer
   useEffect(() => {
@@ -382,6 +350,36 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
     }
   };
 
+  // Safe video element cleanup
+  const cleanupVideoElement = (element) => {
+    if (!element) return;
+    
+    try {
+      // Stop all video tracks
+      if (element.srcObject) {
+        const tracks = element.srcObject.getTracks();
+        tracks.forEach(track => {
+          track.stop();
+          track.enabled = false;
+        });
+        element.srcObject = null;
+      }
+      
+      // Remove all event listeners
+      element.onloadedmetadata = null;
+      element.oncanplay = null;
+      element.onerror = null;
+      
+      // Clear the element
+      if (element.parentNode) {
+        // Don't remove the element from DOM, just clear it
+        element.style.display = 'none';
+      }
+    } catch (error) {
+      console.warn('Error cleaning up video element:', error);
+    }
+  };
+
   const joinCall = async () => {
     setLoading(true);
     setPermissionError(false);
@@ -436,15 +434,14 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
       localTracks.current.audio = mic;
       localTracks.current.video = cam;
 
-      // Setup local video view
-      const localView = localContainerRef.current;
-      if (localView && cam) {
-        safeClearContainer(localContainerRef);
-        const el = document.createElement("div");
-        el.id = "local-player";
-        el.className = "w-full h-full rounded-xl overflow-hidden";
-        localView.appendChild(el);
-        cam.play(el);
+      // Setup local video view using the ref directly
+      if (cam && localVideoRef.current) {
+        try {
+          await cam.play(localVideoRef.current);
+        } catch (playError) {
+          console.error('Error playing local video:', playError);
+          toast.error('Failed to start camera preview');
+        }
       }
 
       // Publish available tracks
@@ -468,22 +465,20 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
         try {
           await client.subscribe(user, mediaType);
           
-          if (mediaType === "video") {
-            const remoteView = remoteContainerRef.current;
-            if (remoteView && user.videoTrack) {
-              // Check if user already has a video element
-              const existingElement = document.getElementById(`remote-${user.uid}`);
-              if (existingElement) {
-                safeRemoveElement(`remote-${user.uid}`);
+          if (mediaType === "video" && user.videoTrack) {
+            remoteUsersRef.current.set(user.uid, {
+              videoTrack: user.videoTrack,
+              audioTrack: user.audioTrack
+            });
+            
+            if (remoteVideoRef.current) {
+              try {
+                await user.videoTrack.play(remoteVideoRef.current);
+                setHasRemoteUser(true);
+                toast.success('Participant joined the call');
+              } catch (playError) {
+                console.error('Error playing remote video:', playError);
               }
-
-              const el = document.createElement("div");
-              el.id = `remote-${user.uid}`;
-              el.className = "w-full h-full rounded-xl overflow-hidden";
-              remoteView.appendChild(el);
-              user.videoTrack.play(el);
-              remoteUsersRef.current.add(user.uid);
-              toast.success('Participant joined the call');
             }
           }
           
@@ -498,8 +493,8 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
 
       client.on("user-left", (user) => {
         if (remoteUsersRef.current.has(user.uid)) {
-          safeRemoveElement(`remote-${user.uid}`);
           remoteUsersRef.current.delete(user.uid);
+          setHasRemoteUser(remoteUsersRef.current.size > 0);
           toast('Participant left the call');
         }
       });
@@ -569,19 +564,17 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
         toast('You left the call');
       }
 
-      // Safe DOM cleanup
-      safeClearContainer(localContainerRef);
-      safeClearContainer(remoteContainerRef);
+      // Clean up video elements safely
+      cleanupVideoElement(localVideoRef.current);
+      cleanupVideoElement(remoteVideoRef.current);
       
-      // Clear all remote user elements safely
-      remoteUsersRef.current.forEach(uid => {
-        safeRemoveElement(`remote-${uid}`);
-      });
+      // Clear remote users
       remoteUsersRef.current.clear();
       
       setJoined(false);
       setCallDuration(0);
       setPermissionError(false);
+      setHasRemoteUser(false);
     } catch (error) {
       console.error('Error leaving call:', error);
       toast.error('Error ending call');
@@ -613,6 +606,17 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
       }
       await cam.setEnabled(!camOn);
       setCamOn(!camOn);
+      
+      if (localVideoRef.current) {
+        if (!camOn) {
+          // Camera turning on
+          localVideoRef.current.style.display = 'block';
+        } else {
+          // Camera turning off
+          localVideoRef.current.style.display = 'none';
+        }
+      }
+      
       toast.success(camOn ? 'Camera turned off' : 'Camera turned on');
     } catch (error) {
       console.error('Error toggling camera:', error);
@@ -637,11 +641,7 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
 
   useEffect(() => {
     return () => {
-      // Use a ref to track if cleanup has already been done
-      const cleanup = async () => {
-        await leaveCall();
-      };
-      cleanup();
+      leaveCall();
     };
   }, []);
 
@@ -702,12 +702,16 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
               <UserCircleIcon className="w-4 h-4" />
               You ({role})
             </h3>
-            <div
-              ref={localContainerRef}
-              className="relative w-full h-64 bg-gray-900 rounded-xl flex items-center justify-center overflow-hidden"
-            >
+            <div className="relative w-full h-64 bg-gray-900 rounded-xl flex items-center justify-center overflow-hidden">
+              <video
+                ref={localVideoRef}
+                className="w-full h-full object-cover"
+                autoPlay
+                muted
+                playsInline
+              />
               {!joined && (
-                <div className="text-center text-gray-400">
+                <div className="absolute inset-0 flex items-center justify-center text-center text-gray-400">
                   <VideoCameraSlashIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
                   <div className="text-sm">Camera preview</div>
                 </div>
@@ -728,22 +732,29 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
               <UserGroupIcon className="w-4 h-4" />
               {role === 'doctor' ? 'Patient' : 'Doctor'}
             </h3>
-            <div
-              ref={remoteContainerRef}
-              className="relative w-full h-64 lg:h-80 bg-gray-900 rounded-xl flex items-center justify-center overflow-hidden"
-            >
-              {!joined ? (
-                <div className="text-center text-gray-400">
-                  <UserCircleIcon className="w-16 h-16 mx-auto mb-3 opacity-50" />
-                  <div className="text-lg font-medium mb-2">Waiting for participant</div>
-                  <div className="text-sm">The other participant will appear here once they join</div>
+            <div className="relative w-full h-64 lg:h-80 bg-gray-900 rounded-xl flex items-center justify-center overflow-hidden">
+              <video
+                ref={remoteVideoRef}
+                className="w-full h-full object-cover"
+                autoPlay
+                playsInline
+              />
+              {!hasRemoteUser && (
+                <div className="absolute inset-0 flex items-center justify-center text-center text-gray-400">
+                  {!joined ? (
+                    <>
+                      <UserCircleIcon className="w-16 h-16 mx-auto mb-3 opacity-50" />
+                      <div className="text-lg font-medium mb-2">Waiting for participant</div>
+                      <div className="text-sm">The other participant will appear here once they join</div>
+                    </>
+                  ) : (
+                    <>
+                      <UserCircleIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <div className="text-sm">Participant connecting...</div>
+                    </>
+                  )}
                 </div>
-              ) : remoteUsersRef.current.size === 0 ? (
-                <div className="text-center text-gray-400">
-                  <UserCircleIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <div className="text-sm">Participant connecting...</div>
-                </div>
-              ) : null}
+              )}
             </div>
           </div>
         </div>
