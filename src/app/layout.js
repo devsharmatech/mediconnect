@@ -12,9 +12,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Mediconnect",
-  description: "Mediconnect - Healthcare Management System",
-};
+  title: 'Mediconnect.fit - AI-Powered Healthcare Platform',
+  description: 'Your AI-powered healthcare companion connecting patients, doctors, labs, and chemists seamlessly.',
+}
 
 export default function RootLayout({ children }) {
   return (
