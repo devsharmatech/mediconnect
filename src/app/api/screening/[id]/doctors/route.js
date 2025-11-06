@@ -12,7 +12,7 @@ export async function GET(req, { params }) {
       .single();
 
     if (!screening?.analysis) {
-      return NextResponse.json({ error: "No analysis found" }, { status: 404 });
+      return NextResponse.json({ status:false, message: "No analysis found" }, { status: 404 });
     }
 
     const specialties = screening.analysis.recommended_specialties || [];
@@ -29,6 +29,6 @@ export async function GET(req, { params }) {
     });
   } catch (error) {
     console.error("Error:", error);
-    return NextResponse.json({ error: "Server Error" }, { status: 500 });
+    return NextResponse.json({ status:false, message: "Server Error" }, { status: 500 });
   }
 }

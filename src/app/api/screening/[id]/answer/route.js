@@ -9,7 +9,7 @@ export async function POST(req, { params }) {
     const { answers } = body;
 
     if (!answers || !answers.length) {
-      return NextResponse.json({ error: "Answers required" }, { status: 400 });
+      return NextResponse.json({ status:false, message: "Answers required" }, { status: 400 });
     }
 
     // Get existing screening
@@ -21,7 +21,7 @@ export async function POST(req, { params }) {
 
     if (screeningError || !screening) {
       return NextResponse.json(
-        { error: "Screening not found" },
+        { status:false, message: "Screening not found" },
         { status: 404 }
       );
     }
@@ -71,6 +71,6 @@ Now analyze this information and return a JSON object with:
     });
   } catch (error) {
     console.error("Error:", error);
-    return NextResponse.json({ error: "Server Error" }, { status: 500 });
+    return NextResponse.json({ status:false, message: "Server Error" }, { status: 500 });
   }
 }

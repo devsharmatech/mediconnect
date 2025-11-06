@@ -9,7 +9,7 @@ export async function POST(req) {
 
     if (!patient_id || !initial_symptoms) {
       return NextResponse.json(
-        { error: "Missing required fields: patient_id, initial_symptoms" },
+        { status:false, message: "Missing required fields: patient_id, initial_symptoms" },
         { status: 400 }
       );
     }
@@ -76,7 +76,7 @@ Return valid JSON only in this format:
     console.error("API Error:", error);
     return NextResponse.json(
       {
-        error: error.message || "Unknown Server Error",
+        status: false, message: error.message || "Unknown Server Error",
       },
       { status: 500 }
     );
