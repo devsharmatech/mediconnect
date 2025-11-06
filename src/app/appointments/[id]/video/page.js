@@ -2,26 +2,21 @@
 
 import { useParams, useSearchParams } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
-  ChevronDownIcon, 
-  UserIcon, 
-  UserGroupIcon, 
-  BeakerIcon, 
-  ShoppingCartIcon,
   VideoCameraIcon,
   VideoCameraSlashIcon,
   MicrophoneIcon,
   PhoneIcon,
   PhoneXMarkIcon,
-  ShieldCheckIcon,
   ClockIcon,
   UserCircleIcon,
-  ExclamationTriangleIcon
+  EllipsisVerticalIcon,
+  UserIcon
 } from "@heroicons/react/24/outline";
 import toast, { Toaster } from 'react-hot-toast';
 
-// Create custom slash icons since they don't exist in Heroicons
+// Create custom slash icons
 const MicrophoneSlashIcon = (props) => (
   <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11l-4-4m0 0l-4 4m4-4v12m-6.5-1.5v-10a2.5 2.5 0 115 0v10m-5 0h5m4.5-4.5v3a4.5 4.5 0 11-9 0v-3m9 0h-9" />
@@ -32,239 +27,96 @@ const MicrophoneSlashIcon = (props) => (
 export default function Page() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState(null);
-  const dropdownRef = useRef(null);
-
+  
   const appointmentId = params?.id;
   const userId = searchParams.get("userId") || Math.floor(Math.random() * 100000);
   const role = searchParams.get("role") || "doctor";
 
-  const loginOptions = [
-    {
-      type: 'patient',
-      label: 'Patient',
-      icon: UserIcon,
-      description: 'Access your health records and appointments',
-      color: 'blue'
-    },
-    {
-      type: 'doctor',
-      label: 'Doctor',
-      icon: UserGroupIcon,
-      description: 'Manage your practice and consultations',
-      color: 'green'
-    },
-    {
-      type: 'lab',
-      label: 'Laboratory',
-      icon: BeakerIcon,
-      description: 'Handle test bookings and reports',
-      color: 'orange'
-    },
-    {
-      type: 'chemist',
-      label: 'Chemist',
-      icon: ShoppingCartIcon,
-      description: 'Manage medicine orders and inventory',
-      color: 'purple'
-    }
-  ];
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setActiveDropdown(null);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const getColorClasses = (color) => {
-    const colors = {
-      blue: 'bg-blue-500 text-white',
-      green: 'bg-green-500 text-white',
-      orange: 'bg-orange-500 text-white',
-      purple: 'bg-purple-500 text-white'
-    };
-    return colors[color] || colors.blue;
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
-      {/* Toast Notifications */}
+    <div className="h-screen bg-gray-900 overflow-hidden">
       <Toaster
-        position="top-right"
+        position="top-center"
         toastOptions={{
-          duration: 4000,
+          duration: 3000,
           style: {
             background: '#363636',
             color: '#fff',
           },
-          success: {
-            duration: 3000,
-            iconTheme: {
-              primary: '#10B981',
-              secondary: '#fff',
-            },
-          },
-          error: {
-            duration: 5000,
-            iconTheme: {
-              primary: '#EF4444',
-              secondary: '#fff',
-            },
-          },
         }}
       />
 
-      {/* Enhanced Header matching your navbar */}
-      <nav className="bg-white/80 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            {/* Logo */}
-            <motion.div 
-              className="flex items-center"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-                  <VideoCameraIcon className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-                    Mediconnect
-                  </span>
-                  <span className="text-xs text-blue-600 block -mt-1 font-medium">.fit</span>
-                </div>
+      {/* Compact Header */}
+      <nav className="bg-gray-900 border-b border-gray-700">
+        <div className="px-4 py-3">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <VideoCameraIcon className="w-4 h-4 text-white" />
               </div>
-            </motion.div>
-
-            {/* Appointment Info - Desktop */}
-            <div className="hidden lg:flex items-center space-x-6">
-              <div className="flex items-center space-x-4">
-                <div className="bg-blue-50 rounded-lg px-4 py-2 border border-blue-200">
-                  <div className="text-blue-600 text-sm font-medium">Appointment ID</div>
-                  <div className="text-gray-900 font-mono font-semibold">{appointmentId}</div>
-                </div>
-                <div className="bg-green-50 rounded-lg px-4 py-2 border border-green-200">
-                  <div className="text-green-600 text-sm font-medium">Role</div>
-                  <div className="text-gray-900 font-semibold capitalize flex items-center gap-2">
-                    <UserCircleIcon className="w-4 h-4" />
-                    {role}
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2 bg-emerald-50 rounded-full px-4 py-2 border border-emerald-200">
-                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                  <span className="text-emerald-700 text-sm font-medium">Secure Call</span>
-                </div>
+              <div>
+                <span className="text-lg font-bold text-white">Mediconnect</span>
+                <span className="text-xs text-blue-400 block -mt-1">.fit</span>
               </div>
             </div>
-
-            {/* Status Indicator */}
+            
             <div className="flex items-center space-x-4">
-              {/* Mobile Menu Button */}
-              <button 
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="lg:hidden p-2 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
-              >
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
+              <div className="flex items-center space-x-2 text-gray-300">
+                <ClockIcon className="w-4 h-4" />
+                <span className="font-mono text-sm">00:00</span>
+              </div>
+              <div className="flex items-center space-x-2 bg-red-500/20 px-2 py-1 rounded-full border border-red-500/30">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
+                <span className="text-red-400 text-xs">Not connected</span>
+              </div>
             </div>
           </div>
-
-          {/* Mobile Menu */}
-          {isMenuOpen && (
-            <div className="lg:hidden bg-blue-50 border-t border-blue-200 py-4">
-              <div className="space-y-3 px-4">
-                <div className="bg-white rounded-lg p-3 border border-blue-200">
-                  <div className="text-blue-600 text-sm font-medium">Appointment ID</div>
-                  <div className="text-gray-900 font-mono font-semibold">{appointmentId}</div>
-                </div>
-                <div className="bg-white rounded-lg p-3 border border-blue-200">
-                  <div className="text-green-600 text-sm font-medium">Role</div>
-                  <div className="text-gray-900 font-semibold capitalize">{role}</div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Page Header */}
-        <motion.div 
-          className="mb-8 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <h1 className="text-4xl font-bold text-gray-800 mb-3">
-            Secure Video Consultation
-          </h1>
-          <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-            Your health is our priority. This is a secure, encrypted video call for your medical consultation.
-          </p>
-        </motion.div>
-
-        {/* Video Call Container */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-          {appointmentId ? (
-            <EnhancedVideoCallClient
-              appointmentId={appointmentId}
-              userId={userId}
-              role={role}
-            />
-          ) : (
-            <div className="p-8 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading appointment details...</p>
+      <main className="h-[calc(100vh-140px)]">
+        {appointmentId ? (
+          <CompactVideoCall
+            appointmentId={appointmentId}
+            userId={userId}
+            role={role}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full bg-gray-900">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
+              <p className="text-gray-400 text-sm">Loading appointment...</p>
             </div>
-          )}
-        </div>
-
-        {/* Security Notice */}
-        <motion.div 
-          className="mt-6 text-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-        >
-          <div className="inline-flex items-center space-x-3 text-sm text-gray-600 bg-gray-50 rounded-xl px-6 py-3 border border-gray-200">
-            <ShieldCheckIcon className="w-5 h-5 text-green-500" />
-            <span>This call is encrypted and secure. Your privacy is protected.</span>
           </div>
-        </motion.div>
+        )}
       </main>
     </div>
   );
 }
 
-// Enhanced Video Call Client Component
-function EnhancedVideoCallClient({ appointmentId, userId, role }) {
+// Compact Video Call Component
+function CompactVideoCall({ appointmentId, userId, role }) {
   const channelName = `appointment_${appointmentId}`;
   const clientRef = useRef(null);
   const localTracks = useRef({ audio: null, video: null });
   
-  // Use separate refs for video elements
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
-  
-  const remoteUsersRef = useRef(new Map()); // Track remote users with their tracks
+  const remoteUsersRef = useRef(new Map());
 
   const [joined, setJoined] = useState(false);
-  const [micOn, setMicOn] = useState(true);
-  const [camOn, setCamOn] = useState(true);
+  const [micOn, setMicOn] = useState(false);
+  const [camOn, setCamOn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
-  const [permissionError, setPermissionError] = useState(false);
   const [hasRemoteUser, setHasRemoteUser] = useState(false);
+  const [participantCount, setParticipantCount] = useState(1);
+  const [mediaState, setMediaState] = useState({
+    hasCamera: false,
+    hasMicrophone: false,
+    cameraError: null,
+    microphoneError: null
+  });
 
   // Call timer
   useEffect(() => {
@@ -290,116 +142,128 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
       const { default: AgoraRTC } = await import("agora-rtc-sdk-ng");
       return AgoraRTC;
     } catch (error) {
-      console.error('Failed to load Agora SDK:', error);
-      toast.error('Failed to load video call service. Please refresh the page.');
+      toast.error('Failed to load video service');
       throw error;
     }
   };
 
-  const checkMediaPermissions = async () => {
+  // Test media devices without Agora
+  const testMediaDevices = async () => {
+    let cameraAvailable = false;
+    let microphoneAvailable = false;
+    let cameraError = null;
+    let microphoneError = null;
+
     try {
-      // Check camera permissions
-      const cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
-      cameraStream.getTracks().forEach(track => track.stop());
-
-      // Check microphone permissions
-      const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      micStream.getTracks().forEach(track => track.stop());
-
-      return true;
+      // Test camera
+      const videoStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 30 }
+        } 
+      });
+      videoStream.getTracks().forEach(track => track.stop());
+      cameraAvailable = true;
     } catch (error) {
-      console.error('Media permission error:', error);
-      return false;
+      cameraAvailable = false;
+      if (error.name === 'NotAllowedError') {
+        cameraError = 'Camera permission denied';
+      } else if (error.name === 'NotFoundError') {
+        cameraError = 'No camera found';
+      } else if (error.name === 'NotReadableError') {
+        cameraError = 'Camera in use by another application';
+      } else {
+        cameraError = 'Camera not accessible';
+      }
     }
+
+    try {
+      // Test microphone
+      const audioStream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true
+        } 
+      });
+      audioStream.getTracks().forEach(track => track.stop());
+      microphoneAvailable = true;
+    } catch (error) {
+      microphoneAvailable = false;
+      if (error.name === 'NotAllowedError') {
+        microphoneError = 'Microphone permission denied';
+      } else if (error.name === 'NotFoundError') {
+        microphoneError = 'No microphone found';
+      } else if (error.name === 'NotReadableError') {
+        microphoneError = 'Microphone in use by another application';
+      } else {
+        microphoneError = 'Microphone not accessible';
+      }
+    }
+
+    setMediaState({
+      hasCamera: cameraAvailable,
+      hasMicrophone: microphoneAvailable,
+      cameraError,
+      microphoneError
+    });
+
+    return { hasCamera: cameraAvailable, hasMicrophone: microphoneAvailable };
   };
 
-  const createTracksWithFallback = async (AgoraRTC) => {
-    try {
-      // Try to create both audio and video tracks
-      const [mic, cam] = await AgoraRTC.createMicrophoneAndCameraTracks();
-      return { mic, cam, error: null };
-    } catch (error) {
-      console.warn('Failed to create both tracks, trying fallback:', error);
+  // Safe track creation that never throws errors
+  const createTracksSafely = async (AgoraRTC) => {
+    let mic = null;
+    let cam = null;
 
-      // Fallback: Try to create tracks individually
-      let mic = null;
-      let cam = null;
-      const errors = [];
-
+    // Create microphone track safely
+    if (mediaState.hasMicrophone) {
       try {
-        mic = await AgoraRTC.createMicrophoneAudioTrack();
-      } catch (micError) {
-        console.error('Failed to create microphone track:', micError);
-        errors.push(`Microphone: ${micError.message}`);
-        toast.error('Cannot access microphone. Please check permissions.');
+        mic = await AgoraRTC.createMicrophoneAudioTrack({
+          AEC: true,
+          ANS: true,
+          AGC: true
+        }).catch(() => null);
+      } catch (error) {
+        console.warn('Microphone track creation failed silently');
       }
+    }
 
+    // Create camera track safely - only if we know camera is available
+    if (mediaState.hasCamera && !mediaState.cameraError?.includes('in use')) {
       try {
-        cam = await AgoraRTC.createCameraVideoTrack();
-      } catch (camError) {
-        console.error('Failed to create camera track:', camError);
-        errors.push(`Camera: ${camError.message}`);
-        toast.error('Cannot access camera. Please check permissions.');
+        // Use minimal configuration to avoid NOT_READABLE errors
+        cam = await AgoraRTC.createCameraVideoTrack({
+          encoderConfig: '120p', // Lowest possible quality
+          optimizationMode: 'motion',
+          bitrateMin: 100,
+          bitrateMax: 500
+        }).catch(() => null);
+        
+        // If that fails, try with no configuration
+        if (!cam) {
+          cam = await AgoraRTC.createCameraVideoTrack().catch(() => null);
+        }
+      } catch (error) {
+        console.warn('Camera track creation failed silently');
       }
-
-      if (!mic && !cam) {
-        throw new Error(`No media devices available: ${errors.join(', ')}`);
-      }
-
-      return { mic, cam, error: errors.length > 0 ? errors.join(', ') : null };
     }
-  };
 
-  // Safe video element cleanup
-  const cleanupVideoElement = (element) => {
-    if (!element) return;
-    
-    try {
-      // Stop all video tracks
-      if (element.srcObject) {
-        const tracks = element.srcObject.getTracks();
-        tracks.forEach(track => {
-          track.stop();
-          track.enabled = false;
-        });
-        element.srcObject = null;
-      }
-      
-      // Remove all event listeners
-      element.onloadedmetadata = null;
-      element.oncanplay = null;
-      element.onerror = null;
-      
-      // Clear the element
-      if (element.parentNode) {
-        // Don't remove the element from DOM, just clear it
-        element.style.display = 'none';
-      }
-    } catch (error) {
-      console.warn('Error cleaning up video element:', error);
-    }
+    return { mic, cam };
   };
 
   const joinCall = async () => {
     setLoading(true);
-    setPermissionError(false);
     
     try {
-      // Check if browser supports media devices
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Your browser does not support video calling. Please use a modern browser like Chrome, Firefox, or Safari.');
+      if (!navigator.mediaDevices) {
+        throw new Error('Browser not supported');
       }
 
-      // Check basic permissions first
-      const hasPermissions = await checkMediaPermissions();
-      if (!hasPermissions) {
-        setPermissionError(true);
-        toast.error('Please allow camera and microphone permissions to join the call.');
-        return;
-      }
+      // Test devices first
+      const deviceStatus = await testMediaDevices();
 
-      // Generate token
-      const res = await fetch("/api/agora/token", {
+      const tokenPromise = fetch("/api/agora/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -409,40 +273,50 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
         }),
       });
 
-      if (!res.ok) {
-        throw new Error(`Failed to generate token: ${res.status} ${res.statusText}`);
-      }
+      const loadingToast = toast.loading('Joining consultation...');
+
+      const [res, AgoraRTC] = await Promise.all([
+        tokenPromise,
+        loadAgora()
+      ]);
+
+      if (!res.ok) throw new Error('Server error');
 
       const data = await res.json();
-      if (!data.status) {
-        throw new Error(data.message || "Failed to generate authentication token");
-      }
+      if (!data.status) throw new Error(data.message || "Authentication failed");
 
       const { appId, token } = data;
-      const AgoraRTC = await loadAgora();
       
-      // Create client and join channel
-      const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+      const client = AgoraRTC.createClient({ 
+        mode: "rtc", 
+        codec: "vp8" 
+      });
       clientRef.current = client;
 
       await client.join(appId, channelName, token, userId);
-      toast.success('Successfully joined the call!');
+      toast.dismiss(loadingToast);
 
-      // Create media tracks with fallback
-      const { mic, cam, error: trackError } = await createTracksWithFallback(AgoraRTC);
+      // Create tracks safely without throwing errors
+      const { mic, cam } = await createTracksSafely(AgoraRTC);
       
       localTracks.current.audio = mic;
       localTracks.current.video = cam;
 
-      // Setup local video view using the ref directly
+      // Setup local video if available
       if (cam && localVideoRef.current) {
         try {
           await cam.play(localVideoRef.current);
+          setCamOn(true);
         } catch (playError) {
-          console.error('Error playing local video:', playError);
-          toast.error('Failed to start camera preview');
+          console.warn('Failed to play local video');
+          setCamOn(false);
         }
+      } else {
+        setCamOn(false);
       }
+
+      // Set initial mic state
+      setMicOn(!!mic);
 
       // Publish available tracks
       const tracksToPublish = [];
@@ -450,15 +324,25 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
       if (cam) tracksToPublish.push(cam);
 
       if (tracksToPublish.length > 0) {
-        await client.publish(tracksToPublish);
-      }
-
-      if (trackError) {
-        toast.error(`Some media devices unavailable: ${trackError}`);
+        try {
+          await client.publish(tracksToPublish);
+          if (mic && cam) {
+            toast.success('Audio and video connected');
+          } else if (mic) {
+            toast.success('Audio connected (video unavailable)');
+          } else if (cam) {
+            toast.success('Video connected (audio unavailable)');
+          }
+        } catch (publishError) {
+          console.warn('Publish failed, continuing without media');
+          toast.success('Joined consultation (media unavailable)');
+        }
+      } else {
+        toast.success('Joined as listener');
       }
 
       setJoined(true);
-      remoteUsersRef.current.clear(); // Reset remote users tracking
+      remoteUsersRef.current.clear();
 
       // Handle remote users
       client.on("user-published", async (user, mediaType) => {
@@ -475,19 +359,24 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
               try {
                 await user.videoTrack.play(remoteVideoRef.current);
                 setHasRemoteUser(true);
-                toast.success('Participant joined the call');
+                setParticipantCount(2);
+                const participantRole = role === 'doctor' ? 'Patient' : 'Doctor';
+                toast.success(`${participantRole} joined`);
               } catch (playError) {
-                console.error('Error playing remote video:', playError);
+                console.warn('Failed to play remote video');
               }
             }
           }
           
           if (mediaType === "audio" && user.audioTrack) {
-            user.audioTrack.play();
+            try {
+              user.audioTrack.play();
+            } catch (audioError) {
+              console.warn('Failed to play remote audio');
+            }
           }
         } catch (error) {
-          console.error('Error handling remote user:', error);
-          toast.error('Failed to connect with participant');
+          console.warn('Error handling remote user');
         }
       });
 
@@ -495,43 +384,24 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
         if (remoteUsersRef.current.has(user.uid)) {
           remoteUsersRef.current.delete(user.uid);
           setHasRemoteUser(remoteUsersRef.current.size > 0);
-          toast('Participant left the call');
-        }
-      });
-
-      client.on("connection-state-change", (curState, prevState) => {
-        console.log('Connection state changed:', prevState, '->', curState);
-        
-        if (curState === 'DISCONNECTED') {
-          toast.error('Connection lost. Attempting to reconnect...');
-        } else if (curState === 'CONNECTED') {
-          toast.success('Connection restored');
+          setParticipantCount(1);
+          const participantRole = role === 'doctor' ? 'Patient' : 'Doctor';
+          toast(`${participantRole} left the call`);
         }
       });
 
     } catch (error) {
-      console.error("Join call error:", error);
+      console.error('Join call error:', error);
       
-      // Specific error handling
-      if (error.name === 'NotAllowedError') {
-        toast.error('Camera/microphone access denied. Please allow permissions and try again.');
-        setPermissionError(true);
-      } else if (error.name === 'NotFoundError') {
-        toast.error('No camera or microphone found. Please check your devices.');
-        setPermissionError(true);
-      } else if (error.name === 'NotReadableError') {
-        toast.error('Camera or microphone is busy. Please close other applications using them.');
-        setPermissionError(true);
-      } else if (error.message.includes('token')) {
-        toast.error('Authentication failed. Please refresh the page.');
-      } else if (error.message.includes('network') || error.message.includes('connection')) {
-        toast.error('Network error. Please check your internet connection.');
+      if (error.message.includes('PERMISSION_DENIED') || error.name === 'NotAllowedError') {
+        toast.error('Camera/microphone access denied');
+      } else if (error.message.includes('NOT_READABLE')) {
+        toast.error('Camera is in use by another application');
       } else {
-        toast.error(`Failed to join call: ${error.message}`);
+        toast.error('Failed to join consultation');
       }
-
-      // Cleanup on error
-      await leaveCall();
+      
+      await leaveCall().catch(() => {});
     } finally {
       setLoading(false);
     }
@@ -542,41 +412,47 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
       const client = clientRef.current;
       
       if (client) {
-        // Remove all event listeners first
         client.removeAllListeners();
         
-        // Stop and close all local tracks
+        // Stop tracks safely
         if (localTracks.current.audio) {
-          localTracks.current.audio.stop();
-          localTracks.current.audio.close();
+          try {
+            localTracks.current.audio.stop();
+            localTracks.current.audio.close();
+          } catch (error) {}
           localTracks.current.audio = null;
         }
+        
         if (localTracks.current.video) {
-          localTracks.current.video.stop();
-          localTracks.current.video.close();
+          try {
+            localTracks.current.video.stop();
+            localTracks.current.video.close();
+          } catch (error) {}
           localTracks.current.video = null;
         }
 
-        // Unpublish and leave
-        await client.unpublish().catch(console.error);
-        await client.leave().catch(console.error);
+        try {
+          await client.unpublish();
+          await client.leave();
+        } catch (error) {}
         
-        toast('You left the call');
+        toast('Call ended');
       }
 
-      // Clean up video elements safely
-      cleanupVideoElement(localVideoRef.current);
-      cleanupVideoElement(remoteVideoRef.current);
+      // Clear video elements
+      if (localVideoRef.current) localVideoRef.current.srcObject = null;
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
       
-      // Clear remote users
       remoteUsersRef.current.clear();
       
       setJoined(false);
       setCallDuration(0);
-      setPermissionError(false);
       setHasRemoteUser(false);
+      setParticipantCount(1);
+      setMicOn(false);
+      setCamOn(false);
     } catch (error) {
-      console.error('Error leaving call:', error);
+      console.error('Leave call error:', error);
       toast.error('Error ending call');
     }
   };
@@ -588,11 +464,17 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
         toast.error('Microphone not available');
         return;
       }
-      await mic.setEnabled(!micOn);
-      setMicOn(!micOn);
-      toast.success(micOn ? 'Microphone muted' : 'Microphone unmuted');
+      
+      const newState = !micOn;
+      await mic.setEnabled(newState);
+      setMicOn(newState);
+      
+      if (newState) {
+        toast.success('Microphone unmuted');
+      } else {
+        toast.info('Microphone muted');
+      }
     } catch (error) {
-      console.error('Error toggling microphone:', error);
       toast.error('Failed to toggle microphone');
     }
   };
@@ -604,40 +486,25 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
         toast.error('Camera not available');
         return;
       }
-      await cam.setEnabled(!camOn);
-      setCamOn(!camOn);
       
-      if (localVideoRef.current) {
-        if (!camOn) {
-          // Camera turning on
-          localVideoRef.current.style.display = 'block';
-        } else {
-          // Camera turning off
-          localVideoRef.current.style.display = 'none';
-        }
+      const newState = !camOn;
+      await cam.setEnabled(newState);
+      setCamOn(newState);
+      
+      if (newState) {
+        toast.success('Camera turned on');
+      } else {
+        toast.info('Camera turned off');
       }
-      
-      toast.success(camOn ? 'Camera turned off' : 'Camera turned on');
     } catch (error) {
-      console.error('Error toggling camera:', error);
       toast.error('Failed to toggle camera');
     }
   };
 
-  const requestPermissions = async () => {
-    try {
-      setPermissionError(false);
-      toast.loading('Requesting camera and microphone permissions...');
-      
-      await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      
-      toast.dismiss();
-      toast.success('Permissions granted! You can now join the call.');
-    } catch (error) {
-      toast.dismiss();
-      toast.error('Please allow permissions in your browser settings.');
-    }
-  };
+  // Initialize media state on component mount
+  useEffect(() => {
+    testMediaDevices();
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -646,158 +513,183 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
   }, []);
 
   return (
-    <div className="p-6">
-      {/* Call Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 text-gray-600">
-            <ClockIcon className="w-5 h-5" />
-            <span className="font-mono text-lg font-semibold">{formatTime(callDuration)}</span>
-          </div>
-          {joined && (
-            <div className="flex items-center space-x-2 bg-green-50 px-3 py-1 rounded-full">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-green-700 text-sm font-medium">Live</span>
-            </div>
-          )}
-        </div>
-        
-        <div className="text-right">
-          <div className="text-sm text-gray-500">Appointment ID</div>
-          <div className="font-mono font-semibold text-gray-800">{appointmentId}</div>
-        </div>
-      </div>
+    <div className="flex flex-col h-full bg-gray-900">
+      {/* Video Grid Area */}
+      <div className="flex-1 relative p-2">
+        {!joined ? (
+          // Pre-call view
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center max-w-md mx-auto">
+              <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <VideoCameraIcon className="w-8 h-8 text-gray-400" />
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">
+                Ready to join?
+              </h2>
+              <p className="text-gray-400 text-sm mb-4">
+                Join as {role}
+              </p>
+              
+              {/* Media Status */}
+              <div className="flex justify-center space-x-6 mb-4">
+                <div className={`flex flex-col items-center ${mediaState.hasMicrophone ? 'text-green-400' : 'text-red-400'}`}>
+                  <MicrophoneIcon className="w-5 h-5" />
+                  <span className="text-xs mt-1">{mediaState.hasMicrophone ? 'Ready' : 'No mic'}</span>
+                </div>
+                <div className={`flex flex-col items-center ${mediaState.hasCamera ? 'text-green-400' : 'text-red-400'}`}>
+                  <VideoCameraIcon className="w-5 h-5" />
+                  <span className="text-xs mt-1">{mediaState.hasCamera ? 'Ready' : 'No camera'}</span>
+                </div>
+              </div>
 
-      {/* Permission Error Banner */}
-      {permissionError && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4"
-        >
-          <div className="flex items-center space-x-3">
-            <ExclamationTriangleIcon className="w-5 h-5 text-red-500 flex-shrink-0" />
-            <div className="flex-1">
-              <h4 className="text-red-800 font-semibold">Camera/Microphone Access Required</h4>
-              <p className="text-red-600 text-sm mt-1">
-                Please allow camera and microphone permissions to join the video call.
+              {/* Error Messages */}
+              {mediaState.cameraError && (
+                <div className="mb-3 p-2 bg-yellow-500/20 border border-yellow-500/30 rounded text-xs text-yellow-400">
+                  📹 {mediaState.cameraError}
+                </div>
+              )}
+              {mediaState.microphoneError && (
+                <div className="mb-3 p-2 bg-yellow-500/20 border border-yellow-500/30 rounded text-xs text-yellow-400">
+                  🎤 {mediaState.microphoneError}
+                </div>
+              )}
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={joinCall}
+                disabled={loading}
+                className="bg-green-600 text-white px-8 py-3 rounded-full hover:bg-green-700 transition-colors font-semibold text-sm disabled:opacity-50 w-full max-w-xs"
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Joining...</span>
+                  </div>
+                ) : (
+                  `Join Consultation`
+                )}
+              </motion.button>
+
+              <p className="text-gray-500 text-xs mt-3">
+                You can still join even if media devices are unavailable
               </p>
             </div>
-            <button
-              onClick={requestPermissions}
-              className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
-            >
-              Grant Permissions
-            </button>
           </div>
-        </motion.div>
-      )}
-
-      {/* Video Grid */}
-      <div className="grid lg:grid-cols-3 gap-6 mb-6">
-        {/* Local Video */}
-        <div className="lg:col-span-1">
-          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-4 border border-blue-200">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <UserCircleIcon className="w-4 h-4" />
-              You ({role})
-            </h3>
-            <div className="relative w-full h-64 bg-gray-900 rounded-xl flex items-center justify-center overflow-hidden">
-              <video
-                ref={localVideoRef}
-                className="w-full h-full object-cover"
-                autoPlay
-                muted
-                playsInline
-              />
-              {!joined && (
-                <div className="absolute inset-0 flex items-center justify-center text-center text-gray-400">
-                  <VideoCameraSlashIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <div className="text-sm">Camera preview</div>
-                </div>
-              )}
-              {!camOn && joined && (
-                <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
-                  <VideoCameraSlashIcon className="w-12 h-12 text-gray-400" />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Remote Video */}
-        <div className="lg:col-span-2">
-          <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl p-4 border border-gray-200 h-full">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <UserGroupIcon className="w-4 h-4" />
-              {role === 'doctor' ? 'Patient' : 'Doctor'}
-            </h3>
-            <div className="relative w-full h-64 lg:h-80 bg-gray-900 rounded-xl flex items-center justify-center overflow-hidden">
+        ) : (
+          // Active call view
+          <div className={`h-full grid gap-2 ${
+            hasRemoteUser ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'
+          }`}>
+            
+            {/* Remote Participant */}
+            <div className={`relative bg-black rounded-lg overflow-hidden ${
+              hasRemoteUser ? '' : 'w-full h-full'
+            }`}>
               <video
                 ref={remoteVideoRef}
                 className="w-full h-full object-cover"
                 autoPlay
                 playsInline
               />
+              
+              <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                {role === 'doctor' ? 'Patient' : 'Doctor'}
+              </div>
+
               {!hasRemoteUser && (
-                <div className="absolute inset-0 flex items-center justify-center text-center text-gray-400">
-                  {!joined ? (
-                    <>
-                      <UserCircleIcon className="w-16 h-16 mx-auto mb-3 opacity-50" />
-                      <div className="text-lg font-medium mb-2">Waiting for participant</div>
-                      <div className="text-sm">The other participant will appear here once they join</div>
-                    </>
-                  ) : (
-                    <>
-                      <UserCircleIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <div className="text-sm">Participant connecting...</div>
-                    </>
-                  )}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-gray-400">
+                    <UserIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <div className="text-sm font-medium text-white mb-1">
+                      Waiting for {role === 'doctor' ? 'patient' : 'doctor'}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
+
+            {/* Local Participant */}
+            {hasRemoteUser && (
+              <div className="relative bg-black rounded-lg overflow-hidden">
+                <video
+                  ref={localVideoRef}
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  muted
+                  playsInline
+                />
+                
+                <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                  You ({role})
+                </div>
+
+                {(!localTracks.current.video || !camOn) && (
+                  <div className="absolute inset-0 bg-gray-800 flex items-center justify-center">
+                    <VideoCameraSlashIcon className="w-8 h-8 text-gray-400" />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        </div>
+        )}
+
+        {/* Call Status Bar */}
+        {joined && (
+          <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full">
+            <div className="flex items-center space-x-3 text-xs">
+              <div className="flex items-center space-x-1">
+                <ClockIcon className="w-3 h-3" />
+                <span className="font-mono">{formatTime(callDuration)}</span>
+              </div>
+              <div className="w-px h-3 bg-gray-600"></div>
+              <div className="flex items-center space-x-1">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                <span>{participantCount} participant{participantCount !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Enhanced Controls */}
-      <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
-        <div className="flex flex-col items-center space-y-4">
-          {/* Control Buttons */}
+      {/* Controls */}
+      <div className="bg-gray-900 border-t border-gray-800 py-3">
+        <div className="max-w-md mx-auto px-4">
           <div className="flex items-center justify-center space-x-4">
+            
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
               onClick={toggleMic}
               disabled={!joined || !localTracks.current.audio}
-              className={`p-4 rounded-2xl transition-all duration-200 ${
+              className={`w-10 h-10 rounded-full flex items-center justify-center ${
                 micOn 
-                  ? 'bg-green-500 hover:bg-green-600 text-white shadow-lg' 
-                  : 'bg-red-500 hover:bg-red-600 text-white shadow-lg'
+                  ? 'bg-white hover:bg-gray-200 text-gray-700' 
+                  : 'bg-red-500 hover:bg-red-600 text-white'
               } ${!joined || !localTracks.current.audio ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {micOn ? (
-                <MicrophoneIcon className="w-6 h-6" />
+                <MicrophoneIcon className="w-5 h-5" />
               ) : (
-                <MicrophoneSlashIcon className="w-6 h-6" />
+                <MicrophoneSlashIcon className="w-5 h-5" />
               )}
             </motion.button>
 
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
               onClick={toggleCam}
               disabled={!joined || !localTracks.current.video}
-              className={`p-4 rounded-2xl transition-all duration-200 ${
+              className={`w-10 h-10 rounded-full flex items-center justify-center ${
                 camOn 
-                  ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-lg' 
-                  : 'bg-red-500 hover:bg-red-600 text-white shadow-lg'
+                  ? 'bg-white hover:bg-gray-200 text-gray-700' 
+                  : 'bg-red-500 hover:bg-red-600 text-white'
               } ${!joined || !localTracks.current.video ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {camOn ? (
-                <VideoCameraIcon className="w-6 h-6" />
+                <VideoCameraIcon className="w-5 h-5" />
               ) : (
-                <VideoCameraSlashIcon className="w-6 h-6" />
+                <VideoCameraSlashIcon className="w-5 h-5" />
               )}
             </motion.button>
 
@@ -806,37 +698,44 @@ function EnhancedVideoCallClient({ appointmentId, userId, role }) {
               whileTap={{ scale: 0.95 }}
               onClick={joined ? leaveCall : joinCall}
               disabled={loading}
-              className={`p-4 rounded-2xl transition-all duration-200 ${
+              className={`w-12 h-12 rounded-full flex items-center justify-center ${
                 joined 
-                  ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg' 
-                  : 'bg-green-500 hover:bg-green-600 text-white shadow-lg'
+                  ? 'bg-red-500 hover:bg-red-600 text-white' 
+                  : 'bg-green-500 hover:bg-green-600 text-white'
               } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {loading ? (
-                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : joined ? (
-                <PhoneXMarkIcon className="w-6 h-6" />
+                <PhoneXMarkIcon className="w-5 h-5" />
               ) : (
-                <PhoneIcon className="w-6 h-6" />
+                <PhoneIcon className="w-5 h-5" />
               )}
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="w-10 h-10 rounded-full bg-white hover:bg-gray-200 text-gray-700 flex items-center justify-center"
+            >
+              <EllipsisVerticalIcon className="w-5 h-5" />
             </motion.button>
           </div>
 
-          {/* Status Indicators */}
-          <div className="flex items-center space-x-6 text-sm text-gray-600">
-            <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${
-                !localTracks.current.audio ? 'bg-gray-400' : micOn ? 'bg-green-500' : 'bg-red-500'
-              }`}></div>
-              <span>Microphone {!localTracks.current.audio ? 'Unavailable' : micOn ? 'On' : 'Off'}</span>
+          {joined && (
+            <div className="mt-2 text-center">
+              <div className="inline-flex items-center space-x-3 text-xs text-gray-400">
+                <div className={`flex items-center space-x-1 ${localTracks.current.audio ? 'text-green-400' : 'text-red-400'}`}>
+                  <MicrophoneIcon className="w-3 h-3" />
+                  <span>{localTracks.current.audio ? 'Audio' : 'No audio'}</span>
+                </div>
+                <div className={`flex items-center space-x-1 ${localTracks.current.video ? 'text-green-400' : 'text-red-400'}`}>
+                  <VideoCameraIcon className="w-3 h-3" />
+                  <span>{localTracks.current.video ? 'Video' : 'No video'}</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${
-                !localTracks.current.video ? 'bg-gray-400' : camOn ? 'bg-green-500' : 'bg-red-500'
-              }`}></div>
-              <span>Camera {!localTracks.current.video ? 'Unavailable' : camOn ? 'On' : 'Off'}</span>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
