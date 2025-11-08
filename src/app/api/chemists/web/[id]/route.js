@@ -75,7 +75,7 @@ export async function PUT(req, { params }) {
 
       const fileExt = file.name.split(".").pop();
       // Organize by user ID and document type folder
-      const fileName = `${id}/${fieldName}/${fieldName}-${Date.now()}.${fileExt}`;
+      const fileName = `${fieldName}/${fieldName}-${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from("chemist-documents")

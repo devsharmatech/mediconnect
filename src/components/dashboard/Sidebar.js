@@ -63,11 +63,6 @@ export default function Sidebar({ open, mobileOpen, onToggle, onCloseMobile }) {
       path: `/admin/labs`,
     },
     { 
-      name: "Orders", 
-      icon: <ClipboardList size={22} />, 
-      path: `/admin/orders`,
-    },
-    { 
       name: "Settings", 
       icon: <Settings size={22} />, 
       path: `/admin/settings`,

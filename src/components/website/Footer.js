@@ -43,7 +43,7 @@ export default function Footer() {
               <li><Link href="#" className="text-gray-400 hover:text-white transition-colors">Doctor Module</Link></li>
               <li><Link href="#" className="text-gray-400 hover:text-white transition-colors">Lab Module</Link></li>
               <li><Link href="#" className="text-gray-400 hover:text-white transition-colors">Chemist Module</Link></li>
-              <li><Link href="#" className="text-gray-400 hover:text-white transition-colors">Admin Dashboard</Link></li>
+              <li><Link href="/admin/login" className="text-gray-400 hover:text-white transition-colors">Admin Dashboard</Link></li>
             </ul>
           </div>
 
@@ -72,7 +72,7 @@ export default function Footer() {
 
         <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-400 text-sm">
-            © 2024 Mediconnect.fit. All rights reserved.
+            © 2025 Mediconnect.fit. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link href="#" className="text-gray-400 hover:text-white text-sm transition-colors">

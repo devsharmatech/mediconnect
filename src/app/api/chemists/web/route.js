@@ -67,7 +67,7 @@ export async function POST(req) {
       if (!file || file.size === 0) return null;
 
       const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/${fieldName}/${fieldName}-${Date.now()}.${fileExt}`;
+      const fileName = `${fieldName}/${fieldName}-${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from("chemist-documents")
