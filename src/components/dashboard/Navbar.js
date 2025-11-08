@@ -13,6 +13,7 @@ import {
   Menu,
 } from "lucide-react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 
 export default function Navbar({ onMenuClick, sidebarOpen }) {
   const [role, setRole] = useState("admin");
@@ -217,18 +218,18 @@ export default function Navbar({ onMenuClick, sidebarOpen }) {
             {profileOpen && (
               <div className="absolute right-0 top-12 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50">
                 <div className="p-2">
-                  <button className="flex items-center space-x-3 w-full p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+                  <Link href="/admin/profile" className="flex items-center space-x-3 w-full p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
                     <User size={18} />
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                       Profile
                     </span>
-                  </button>
-                  <button className="flex items-center space-x-3 w-full p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+                  </Link>
+                  <Link href="/admin/settings" className="flex items-center space-x-3 w-full p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
                     <Settings size={18} />
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                       Settings
                     </span>
-                  </button>
+                  </Link>
                   <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
                   <button
                     onClick={() => {
