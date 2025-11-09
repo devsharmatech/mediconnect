@@ -11,7 +11,7 @@ export async function POST(req) {
       return NextResponse.json(
         {
           status: false,
-          message: "Missing required fields: patient_id, initial_symptoms",
+          message: `Missing required fields: patient_id, initial_symptoms`,
         },
         { status: 400 }
       );
@@ -19,71 +19,50 @@ export async function POST(req) {
 
     const screening_id = uuidv4();
 
-    const systemPrompt = `
-You are Mediconnect AI — a friendly medical screening assistant.
-The patient reports: "${initial_symptoms}".
-Ask 4–5 short, simple, follow-up questions to learn more.
-Return valid JSON only in this format:
+    const prompt = `
+You are Mediconnect AI — a clinical triage assistant.
+A patient reports: "${initial_symptoms}".
+
+Ask ONE short, clear follow-up question to understand more.
+Return strictly JSON:
 {
-  "questions": [
-    { "id": "q1", "text": "question text", "type": "text" },
-    { "id": "q2", "text": "question text", "type": "choice", "choices": ["yes", "no"] },
-    { "id": "q3", "text": "question text", "type": "text" },
-    { "id": "q4", "text": "question text", "type": "text" }
-  ]
-}`;
+  "question": { "id": "q1", "text": "string", "type": "text" }
+}
+`;
 
     const aiRes = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [{ role: "system", content: systemPrompt }],
+      messages: [{ role: "system", content: prompt }],
     });
-    const content = aiRes?.choices?.[0]?.message?.content;
-    if (!content) {
-      throw new Error("OpenAI returned empty content");
-    }
 
-    let aiData;
-    try {
-      aiData = JSON.parse(content);
-    } catch (err) {
-      console.error("AI JSON Parse Error:", content);
-      throw new Error("AI returned invalid JSON format");
-    }
+    const content = aiRes.choices?.[0]?.message?.content;
+    const aiData = JSON.parse(content);
 
-    if (!aiData.questions) {
-      throw new Error("AI response missing 'questions' field");
-    }
-
-    const { error: dbError } = await supabase
-      .from("screening_sessions")
-      .insert([
-        {
-          id: screening_id,
-          patient_id,
-          status: "in_progress",
-          initial_symptoms,
-          questions: aiData.questions,
-          created_at: new Date(),
-        },
-      ]);
-
-    if (dbError) {
-      console.error("Supabase insert error:", dbError);
-      throw new Error(`Supabase error: ${dbError.message}`);
-    }
+    // Store new screening session
+    await supabase.from("screening_sessions").insert([
+      {
+        id: screening_id,
+        patient_id,
+        stage: 1,
+        initial_symptoms,
+        questions: [aiData.question],
+        answers: [{ question_id: "q0", answer: initial_symptoms }],
+        status: "in_progress",
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+    ]);
 
     return NextResponse.json({
+      status: true,
       screening_id,
-      status: "in_progress",
-      next_questions: aiData.questions,
+      stage: 1,
+      next_question: aiData.question,
     });
   } catch (error) {
-    console.error("API Error:", error);
+    console.error("Start Error:", error);
     return NextResponse.json(
-      {
-        status: false,
-        message: error.message || "Unknown Server Error",
-      },
+      { status: false, message: error.message },
       { status: 500 }
     );
   }
