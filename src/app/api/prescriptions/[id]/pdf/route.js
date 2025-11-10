@@ -6,14 +6,13 @@ import dayjs from "dayjs";
 let puppeteer;
 let chromium;
 
-if (isVercel) {
+if (process.env.VERCEL) {
   puppeteer = (await import("puppeteer-core")).default;
   chromium = (await import("@sparticuz/chromium")).default;
 } else {
   puppeteer = (await import("puppeteer")).default;
   chromium = null;
 }
-
 export async function OPTIONS() {
   return new Response("OK", { headers: corsHeaders });
 }
