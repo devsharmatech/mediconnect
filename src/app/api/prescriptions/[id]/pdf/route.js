@@ -76,16 +76,16 @@ export async function GET(req, { params }) {
 
     const pdfBuffer = await pdfResponse.arrayBuffer();
 
+    const timestamp = dayjs().format("YYYYMMDD_HHmmss");
     await supabase.storage
       .from("prescriptions")
-      .upload(`pdfs/${id}.pdf`, new Blob([pdfBuffer]), {
+      .upload(`pdfs/${id}_${timestamp}.pdf`, new Blob([pdfBuffer]), {
         contentType: "application/pdf",
-        upsert: true,
       });
 
     const { data: publicUrlData } = supabase.storage
       .from("prescriptions")
-      .getPublicUrl(`pdfs/${id}.pdf`);
+      .getPublicUrl(`pdfs/${id}_${timestamp}.pdf`);
 
     return new Response(
       JSON.stringify({
@@ -431,7 +431,9 @@ function buildPrescriptionHtml(rec) {
           <div>Consultation Fee: <span class="consultation-fee">₹${
             rec.doctor_details?.consultation_fee || 0
           }</span></div>
-          <div>License: MED/${rec.doctor_details?.license_number || "XXXXX"}</div>
+          <div>License: MED/${
+            rec.doctor_details?.license_number || "XXXXX"
+          }</div>
         </div>
       </div>
     </div>
@@ -555,13 +557,13 @@ function buildPrescriptionHtml(rec) {
       <div class="footer-right">
         <div class="signature-box">
           <img src="${signatureUrl}" alt="Doctor's Signature" />
-          <div class="doctor-name">${
-            rec.doctor_details?.full_name || ""
-          }</div>
+          <div class="doctor-name">${rec.doctor_details?.full_name || ""}</div>
           <div class="doctor-specialization">
             ${rec.doctor_details?.specialization || "Medical Practitioner"}
           </div>
-          <div>License No: MED/${rec.doctor_details?.license_number || "XXXXX"}</div>
+          <div>License No: MED/${
+            rec.doctor_details?.license_number || "XXXXX"
+          }</div>
         </div>
       </div>
     </div>
