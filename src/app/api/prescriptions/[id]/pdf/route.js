@@ -169,7 +169,7 @@ function buildPrescriptionHtml(rec) {
       line-height: 1.4;
     }
     .page {
-      padding: 5mm 20mm 5mm 10mm;
+      padding: 20mm 5mm 10mm 5mm;
       position: relative;
       box-sizing: border-box;
     }
