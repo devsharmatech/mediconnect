@@ -436,8 +436,6 @@ export default function AppointmentsPage() {
                       <Filter size={20} />
                     </motion.button>
 
-                    
-
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -524,7 +522,6 @@ export default function AppointmentsPage() {
                         ? "Try adjusting your search criteria"
                         : "No appointments scheduled yet"}
                     </p>
-                   
                   </motion.div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -1062,22 +1059,61 @@ export default function AppointmentsPage() {
 
                 {/* Disease Information */}
                 <div className="space-y-4">
-                  {Object.entries(viewAppointment.disease_info || {}).map(
-                    ([key, value]) => (
-                      <div
-                        key={key}
-                        className="p-3 bg-white/50 dark:bg-gray-800/40 rounded-lg shadow-sm border border-gray-200/30 dark:border-gray-700/30"
-                      >
-                        <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-100 capitalize mb-1">
-                          {key.replace(/_/g, " ")}
-                        </h5>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                          {typeof value === "object"
-                            ? JSON.stringify(value, null, 2)
-                            : value || "N/A"}
-                        </p>
-                      </div>
-                    )
+                  {/* 🧠 Disease Information Section */}
+                  {viewAppointment?.disease_info ? (
+                    <div className="space-y-4">
+                      {Object.entries(viewAppointment.disease_info).map(
+                        ([key, value]) => (
+                          <div
+                            key={key}
+                            className="p-3 bg-white/60 dark:bg-gray-800/40 rounded-lg shadow-sm border border-gray-200/30 dark:border-gray-700/30"
+                          >
+                            <h5 className="text-sm font-semibold text-gray-800 dark:text-gray-100 capitalize mb-1">
+                              {key.replace(/_/g, " ")}
+                            </h5>
+
+                            {/* 🧩 Auto-format structured content */}
+                            {Array.isArray(value) ? (
+                              <ul className="list-disc pl-5 text-sm text-gray-700 dark:text-gray-300">
+                                {value.map((item, i) => (
+                                  <li key={i}>
+                                    {typeof item === "object"
+                                      ? Object.entries(item).map(([k, v]) => (
+                                          <span key={k} className="block">
+                                            <strong className="capitalize">
+                                              {k.replace(/_/g, " ")}:
+                                            </strong>{" "}
+                                            {String(v)}
+                                          </span>
+                                        ))
+                                      : String(item)}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : typeof value === "object" ? (
+                              <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                                {Object.entries(value).map(([k, v]) => (
+                                  <div key={k}>
+                                    <strong className="capitalize">
+                                      {k.replace(/_/g, " ")}:
+                                    </strong>{" "}
+                                    {String(v)}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                {value || "N/A"}
+                              </p>
+                            )}
+                          </div>
+                        )
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm italic">
+                      No disease information available.
+                    </p>
                   )}
                 </div>
               </div>

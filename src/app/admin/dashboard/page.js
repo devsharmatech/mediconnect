@@ -16,6 +16,10 @@ import {
   Clock,
   UserCheck,
   Plus,
+  FlaskRoundIcon as LabIcon,
+  ShoppingCart,
+  UserCog,
+  RefreshCw,
 } from "lucide-react";
 import {
   BarChart,
@@ -38,6 +42,9 @@ export default function AdminDashboard() {
   const [dateRange, setDateRange] = useState("week");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const user = getLoggedInUser("admin");
@@ -52,87 +59,92 @@ export default function AdminDashboard() {
     setEndDate(end.toISOString().split("T")[0]);
   }, [router]);
 
-  // Stats Data
-  const stats = [
+  useEffect(() => {
+    fetchDashboardData();
+  }, [dateRange, startDate, endDate]);
+
+  const fetchDashboardData = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      
+      const params = new URLSearchParams({
+        dateRange,
+        ...(dateRange === 'custom' && { startDate, endDate })
+      });
+
+      const response = await fetch(`/api/admin/dashboard?${params}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard data');
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setDashboardData(result.data);
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+      setError(error.message);
+      console.error('Failed to fetch dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Stats Data based on real data
+  const stats = dashboardData ? [
     {
       title: "Total Patients",
-      value: "1,234",
+      value: dashboardData.stats.totalPatients?.toLocaleString() || "0",
       change: "+12%",
       icon: <Users className="w-6 h-6" />,
-      color: "bg-gray-800",
+      color: "bg-blue-500",
+      trend: "up",
+    },
+    {
+      title: "Total Doctors",
+      value: dashboardData.stats.totalDoctors?.toLocaleString() || "0",
+      change: "+5%",
+      icon: <Stethoscope className="w-6 h-6" />,
+      color: "bg-green-500",
       trend: "up",
     },
     {
       title: "Appointments",
-      value: "156",
+      value: dashboardData.stats.totalAppointments?.toLocaleString() || "0",
       change: "+8%",
       icon: <Calendar className="w-6 h-6" />,
-      color: "bg-gray-800",
+      color: "bg-purple-500",
       trend: "up",
     },
     {
       title: "Revenue",
-      value: "$45,678",
+      value: `$${(dashboardData.stats.totalRevenue || 0).toLocaleString()}`,
       change: "+23%",
       icon: <DollarSign className="w-6 h-6" />,
-      color: "bg-gray-800",
+      color: "bg-yellow-500",
       trend: "up",
     },
     {
-      title: "Doctors",
-      value: "48",
-      change: "+5%",
-      icon: <Stethoscope className="w-6 h-6" />,
-      color: "bg-gray-800",
-      trend: "up",
-    },
-    {
-      title: "Medicines",
-      value: "324",
+      title: "Labs",
+      value: dashboardData.stats.totalLabs?.toLocaleString() || "0",
       change: "+3%",
-      icon: <Pill className="w-6 h-6" />,
-      color: "bg-gray-800",
+      icon: <LabIcon className="w-6 h-6" />,
+      color: "bg-red-500",
       trend: "up",
     },
     {
-      title: "Health Records",
-      value: "2,156",
-      change: "+15%",
-      icon: <Activity className="w-6 h-6" />,
-      color: "bg-gray-800",
+      title: "Chemists",
+      value: dashboardData.stats.totalChemists?.toLocaleString() || "0",
+      change: "+7%",
+      icon: <ShoppingCart className="w-6 h-6" />,
+      color: "bg-indigo-500",
       trend: "up",
     },
-  ];
-
-  // Appointments Data for Bar Chart
-  const appointmentData = [
-    { day: "Mon", appointments: 25, completed: 20 },
-    { day: "Tue", appointments: 32, completed: 28 },
-    { day: "Wed", appointments: 28, completed: 25 },
-    { day: "Thu", appointments: 41, completed: 35 },
-    { day: "Fri", appointments: 36, completed: 30 },
-    { day: "Sat", appointments: 18, completed: 15 },
-    { day: "Sun", appointments: 12, completed: 10 },
-  ];
-
-  // Revenue Data for Line Chart
-  const revenueData = [
-    { month: "Jan", revenue: 12000, growth: 10 },
-    { month: "Feb", revenue: 15000, growth: 25 },
-    { month: "Mar", revenue: 18000, growth: 20 },
-    { month: "Apr", revenue: 22000, growth: 22 },
-    { month: "May", revenue: 25000, growth: 14 },
-    { month: "Jun", revenue: 30000, growth: 20 },
-  ];
-
-  // Patient Age Distribution for Pie Chart
-  const ageDistributionData = [
-    { name: "0-18", value: 15, color: "#4B5563" },
-    { name: "19-35", value: 35, color: "#6B7280" },
-    { name: "36-50", value: 25, color: "#9CA3AF" },
-    { name: "51-65", value: 15, color: "#D1D5DB" },
-    { name: "65+", value: 10, color: "#E5E7EB" },
-  ];
+  ] : [];
 
   // Custom Tooltip for Charts
   const CustomTooltip = ({ active, payload, label }) => {
@@ -157,6 +169,45 @@ export default function AdminDashboard() {
     return null;
   };
 
+  if (loading) {
+    return (
+      <main className="flex-1 overflow-auto relative z-0">
+        <div className="p-4 md:p-4 lg:p-4 bg-transparent">
+          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50">
+            <div className="flex items-center justify-center h-96">
+              <div className="text-lg text-gray-600 dark:text-gray-400">
+                Loading dashboard data...
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="flex-1 overflow-auto relative z-0">
+        <div className="p-4 md:p-4 lg:p-4 bg-transparent">
+          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50">
+            <div className="flex items-center justify-center h-96">
+              <div className="text-center">
+                <div className="text-red-500 text-lg mb-2">Error</div>
+                <div className="text-gray-600 dark:text-gray-400 mb-4">{error}</div>
+                <button 
+                  onClick={fetchDashboardData}
+                  className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="flex-1 overflow-auto relative z-0">
       <div className="p-4 md:p-4 lg:p-4 bg-transparent">
@@ -172,10 +223,7 @@ export default function AdminDashboard() {
                   Comprehensive overview of your healthcare facility
                 </p>
               </div>
-              <button className="flex items-center space-x-2 px-6 py-3 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-semibold transition-colors cursor-pointer">
-                <Plus size={20} />
-                <span>New Appointment</span>
-              </button>
+              
             </div>
 
             {/* Filters */}
@@ -219,9 +267,12 @@ export default function AdminDashboard() {
                   )}
                 </div>
 
-                <button className="flex items-center space-x-2 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg transition-colors cursor-pointer">
-                  <Download size={18} />
-                  <span>Export Report</span>
+                <button 
+                  onClick={fetchDashboardData}
+                  className="flex items-center space-x-2 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg transition-colors cursor-pointer"
+                >
+                  <RefreshCw size={18} />
+                  <span>Refresh</span>
                 </button>
               </div>
             </div>
@@ -248,7 +299,7 @@ export default function AdminDashboard() {
                             : "text-red-600"
                         }`}
                       >
-                        {stat.change} from last period
+                        {stat.change}
                       </p>
                     </div>
                     <div className={`${stat.color} p-3 rounded-xl text-white`}>
@@ -274,16 +325,9 @@ export default function AdminDashboard() {
                 </div>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={appointmentData}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="opacity-30"
-                      />
-                      <XAxis
-                        dataKey="day"
-                        className="text-sm"
-                        tick={{ fill: "#6B7280" }}
-                      />
+                    <BarChart data={dashboardData?.charts.appointmentChart || []}>
+                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                      <XAxis dataKey="day" className="text-sm" tick={{ fill: "#6B7280" }} />
                       <YAxis className="text-sm" tick={{ fill: "#6B7280" }} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend />
@@ -317,30 +361,15 @@ export default function AdminDashboard() {
                 </div>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={revenueData}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="opacity-30"
-                      />
-                      <XAxis
-                        dataKey="month"
-                        className="text-sm"
-                        tick={{ fill: "#6B7280" }}
-                      />
-                      <YAxis
-                        className="text-sm"
+                    <LineChart data={dashboardData?.charts.monthlyRevenue || []}>
+                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                      <XAxis dataKey="month" className="text-sm" tick={{ fill: "#6B7280" }} />
+                      <YAxis 
+                        className="text-sm" 
                         tick={{ fill: "#6B7280" }}
                         tickFormatter={(value) => `$${value / 1000}k`}
                       />
-                      <Tooltip
-                        content={<CustomTooltip />}
-                        formatter={(value, name) => [
-                          name === "revenue"
-                            ? `$${value.toLocaleString()}`
-                            : `${value}%`,
-                          name === "revenue" ? "Revenue" : "Growth",
-                        ]}
-                      />
+                      <Tooltip content={<CustomTooltip />} />
                       <Legend />
                       <Line
                         type="monotone"
@@ -357,7 +386,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Additional Content to Test Scrolling */}
+            {/* Additional Content */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Patient Age Distribution */}
               <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
@@ -371,24 +400,23 @@ export default function AdminDashboard() {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={ageDistributionData}
+                        data={dashboardData?.charts.ageDistribution || []}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percent }) =>
-                          `${name} (${(percent * 100).toFixed(0)}%)`
-                        }
+                        label={({ name, percentage }) => `${name} (${percentage}%)`}
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        {ageDistributionData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        {dashboardData?.charts.ageDistribution?.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={["#4B5563", "#6B7280", "#9CA3AF", "#D1D5DB", "#E5E7EB"][index]} 
+                          />
                         ))}
                       </Pie>
-                      <Tooltip
-                        formatter={(value) => [`${value}%`, "Percentage"]}
-                      />
+                      <Tooltip formatter={(value, name) => [`${value} patients`, name]} />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
@@ -404,33 +432,33 @@ export default function AdminDashboard() {
                 <div className="space-y-4">
                   {[
                     {
-                      label: "Avg. Appointment Duration",
-                      value: "28 mins",
+                      label: "Today's Appointments",
+                      value: dashboardData?.stats.todayAppointments || 0,
                       icon: <Clock size={16} />,
                     },
                     {
                       label: "Patient Satisfaction",
-                      value: "94%",
+                      value: dashboardData?.quickStats?.patientSatisfaction || "92%",
                       icon: <Eye size={16} />,
                     },
                     {
                       label: "Follow-up Rate",
-                      value: "78%",
+                      value: dashboardData?.quickStats?.followUpRate || "76%",
                       icon: <UserCheck size={16} />,
                     },
                     {
                       label: "Emergency Cases",
-                      value: "12",
+                      value: dashboardData?.quickStats?.emergencyCases || "8",
                       icon: <Activity size={16} />,
                     },
                     {
                       label: "Lab Tests Today",
-                      value: "45",
-                      icon: <Activity size={16} />,
+                      value: dashboardData?.stats.todayLabReports || 0,
+                      icon: <LabIcon size={16} />,
                     },
                     {
-                      label: "Prescriptions",
-                      value: "89",
+                      label: "Pending Prescriptions",
+                      value: dashboardData?.stats.pendingPrescriptions || 0,
                       icon: <Pill size={16} />,
                     },
                   ].map((stat, index) => (
@@ -455,99 +483,26 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Recent Activity - More Items to Test Scrolling */}
+            {/* Recent Activity */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-6">
                 Recent Activity
               </h3>
               <div className="space-y-4">
-                {[
-                  {
-                    action: "New patient registration - John Doe",
-                    time: "2 minutes ago",
-                    user: "Reception",
-                    type: "registration",
-                  },
-                  {
-                    action: "Appointment completed with Dr. Smith",
-                    time: "1 hour ago",
-                    user: "Dr. Smith",
-                    type: "appointment",
-                  },
-                  {
-                    action: "Medicine order placed for Patient #123",
-                    time: "3 hours ago",
-                    user: "Pharmacy",
-                    type: "order",
-                  },
-                  {
-                    action: "Lab test results uploaded for Sarah Wilson",
-                    time: "5 hours ago",
-                    user: "Lab Technician",
-                    type: "lab",
-                  },
-                  {
-                    action: "Payment received for invoice #INV-2024-001",
-                    time: "1 day ago",
-                    user: "Finance Dept",
-                    type: "payment",
-                  },
-                  {
-                    action: "New doctor onboarded - Dr. Johnson",
-                    time: "1 day ago",
-                    user: "HR Dept",
-                    type: "onboarding",
-                  },
-                  {
-                    action: "Medical equipment maintenance completed",
-                    time: "2 days ago",
-                    user: "Maintenance",
-                    type: "maintenance",
-                  },
-                  {
-                    action: "Patient feedback received - 5 stars",
-                    time: "2 days ago",
-                    user: "Quality Dept",
-                    type: "feedback",
-                  },
-                  {
-                    action: "Insurance claim processed",
-                    time: "3 days ago",
-                    user: "Insurance Dept",
-                    type: "insurance",
-                  },
-                  {
-                    action: "Staff training session completed",
-                    time: "3 days ago",
-                    user: "Training Dept",
-                    type: "training",
-                  },
-                ].map((activity, index) => (
+                {dashboardData?.activity?.map((activity, index) => (
                   <div
                     key={index}
                     className="flex items-center space-x-4 p-3 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-lg transition-colors cursor-pointer"
                   >
                     <div
                       className={`w-2 h-2 rounded-full ${
-                        activity.type === "registration"
-                          ? "bg-green-500"
-                          : activity.type === "appointment"
+                        activity.status === 'completed' 
+                          ? "bg-green-500" 
+                          : activity.status === 'booked'
                           ? "bg-blue-500"
-                          : activity.type === "order"
-                          ? "bg-yellow-500"
-                          : activity.type === "lab"
-                          ? "bg-purple-500"
-                          : activity.type === "payment"
-                          ? "bg-gray-500"
-                          : activity.type === "onboarding"
-                          ? "bg-indigo-500"
-                          : activity.type === "maintenance"
-                          ? "bg-orange-500"
-                          : activity.type === "feedback"
-                          ? "bg-pink-500"
-                          : activity.type === "insurance"
-                          ? "bg-teal-500"
-                          : "bg-red-500"
+                          : activity.status === 'cancelled'
+                          ? "bg-red-500"
+                          : "bg-gray-500"
                       }`}
                     ></div>
                     <div className="flex-1">
@@ -563,73 +518,6 @@ export default function AdminDashboard() {
                     </span>
                   </div>
                 ))}
-              </div>
-            </div>
-
-            {/* Additional Sections to Ensure Scrolling */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
-                  Upcoming Appointments
-                </h3>
-                <div className="space-y-3">
-                  {[1, 2, 3, 4, 5].map((item) => (
-                    <div
-                      key={item}
-                      className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
-                    >
-                      <div>
-                        <p className="font-medium text-gray-800 dark:text-gray-200">
-                          Patient #{1000 + item}
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          10:0{item} AM - Dr. Smith
-                        </p>
-                      </div>
-                      <span className="text-sm text-green-600 font-medium">
-                        Confirmed
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
-                  Medical Alerts
-                </h3>
-                <div className="space-y-3">
-                  {[
-                    { message: "Low stock: Paracetamol", priority: "high" },
-                    {
-                      message: "Equipment maintenance due",
-                      priority: "medium",
-                    },
-                    { message: "Staff training scheduled", priority: "low" },
-                  ].map((alert, index) => (
-                    <div
-                      key={index}
-                      className={`p-3 rounded-lg border ${
-                        alert.priority === "high"
-                          ? "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
-                          : alert.priority === "medium"
-                          ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
-                          : "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
-                      }`}
-                    >
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                        {alert.message}
-                      </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        {alert.priority === "high"
-                          ? "High Priority"
-                          : alert.priority === "medium"
-                          ? "Medium Priority"
-                          : "Low Priority"}
-                      </p>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
           </div>

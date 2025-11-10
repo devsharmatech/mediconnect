@@ -86,6 +86,7 @@ export async function GET(req, { params }) {
         "No doctors found matching these specialties",
         {
           screening_id,
+          screening,
           recommended_specialties: specialties,
           doctors: [],
         },
@@ -102,6 +103,7 @@ export async function GET(req, { params }) {
       "Doctors fetched successfully",
       {
         screening_id,
+        screening,
         recommended_specialties: specialties,
         total_doctors: uniqueDoctors.length,
         doctors: uniqueDoctors,
