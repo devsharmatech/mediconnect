@@ -122,12 +122,34 @@ export async function GET(req, { params }) {
 export async function PUT(req, { params }) {
   try {
     const { id } = await params;
-    const updates = await req.json();
+    const body = await req.json();
+
+    const {
+      appointment_id,
+      doctor_id,
+      patient_id,
+      medicines,
+      lab_tests,
+      special_message,
+      ai_analysis,
+    } = body;
+
+    if (!id) {
+      return failure("Prescription ID is required", null, 400, {
+        headers: corsHeaders,
+      });
+    }
 
     const { data, error } = await supabase
       .from("prescriptions")
       .update({
-        ...updates,
+        appointment_id,
+        doctor_id,
+        patient_id,
+        medicines,
+        lab_tests,
+        special_message,
+        ai_analysis,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
