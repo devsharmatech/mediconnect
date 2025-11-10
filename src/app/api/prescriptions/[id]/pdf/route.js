@@ -31,19 +31,25 @@ export async function GET(req, { params }) {
     const html = buildPrescriptionHtml(rec);
 
     const isVercel = !!process.env.VERCEL;
-    const launchOptions = isVercel
-      ? {
-          args: chromium.args,
-          defaultViewport: chromium.defaultViewport,
-          executablePath: await chromium.executablePath(),
-          headless: chromium.headless,
-        }
-      : {
-          headless: true,
-          args: ["--no-sandbox", "--disable-setuid-sandbox"],
-        };
-
-    const browser = await puppeteer.launch(launchOptions);
+    const browser = await puppeteer.launch({
+      args: [
+        ...chromium.args,
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-gpu",
+        "--single-process",
+      ],
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: true,
+      ignoreHTTPSErrors: true,
+      env: {
+        ...process.env,
+        LD_LIBRARY_PATH: `${chromium.libPath}:${
+          process.env.LD_LIBRARY_PATH || ""
+        }`,
+      },
+    });
     const page = await browser.newPage();
 
     await page.setContent(html, { waitUntil: "networkidle0" });
