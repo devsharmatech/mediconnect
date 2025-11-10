@@ -75,7 +75,6 @@ export async function GET(req, { params }) {
 
     const pdfBuffer = await pdfResponse.arrayBuffer();
 
-    // ✅ Optionally upload to Supabase Storage
     await supabase.storage
       .from("prescriptions")
       .upload(`pdfs/${id}.pdf`, new Blob([pdfBuffer]), {
@@ -555,7 +554,7 @@ function buildPrescriptionHtml(rec) {
       <div class="footer-right">
         <div class="signature-box">
           <img src="${signatureUrl}" alt="Doctor's Signature" />
-          <div class="doctor-name">Dr. ${
+          <div class="doctor-name">${
             rec.doctor_details?.full_name || ""
           }</div>
           <div class="doctor-specialization">
