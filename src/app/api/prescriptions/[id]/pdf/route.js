@@ -54,7 +54,7 @@ export async function GET(req, { params }) {
 
     const html = buildPrescriptionHtml(rec);
 
-    const pdfResponse = await fetch("https://api.pdfshift.io/v3/convert/", {
+    const pdfResponse = await fetch("https://api.pdfshift.io/v3/convert/pdf", {
       method: "POST",
       headers: {
         Authorization: `Basic ${btoa(process.env.PDFSHIFT_KEY + ":")}`,
