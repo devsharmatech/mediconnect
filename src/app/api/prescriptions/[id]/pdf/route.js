@@ -3,16 +3,8 @@ import { failure } from "@/lib/response";
 import { corsHeaders } from "@/lib/cors";
 import dayjs from "dayjs";
 
-let puppeteer;
-let chromium;
+export const runtime = "edge"; // ✅ Vercel Edge compatible
 
-if (process.env.VERCEL) {
-  puppeteer = (await import("puppeteer-core")).default;
-  chromium = (await import("@sparticuz/chromium")).default;
-} else {
-  puppeteer = null;
-  chromium = null;
-}
 export async function OPTIONS() {
   return new Response("OK", { headers: corsHeaders });
 }
@@ -20,48 +12,33 @@ export async function OPTIONS() {
 export async function GET(req, { params }) {
   try {
     const { id } = await params;
+
     const { data: rec, error } = await supabase
       .from("prescriptions")
-      .select("*")
+      .select(`*, doctor_details:doctor_id(*), patient_details:patient_id(*), appointments:appointment_id(*)`)
       .eq("id", id)
       .single();
 
-    if (error || !rec) throw new Error("Prescription not found.");
+    if (error || !rec) throw new Error("Prescription not found");
 
+    // Build HTML
     const html = buildPrescriptionHtml(rec);
 
-    const browser = await puppeteer.launch({
-      args: [
-        ...chromium.args,
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-gpu",
-        "--single-process",
-      ],
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: true,
-      ignoreHTTPSErrors: true,
-      env: {
-        ...process.env,
-        LD_LIBRARY_PATH: `${chromium.libPath}:${
-          process.env.LD_LIBRARY_PATH || ""
-        }`,
+    // ✅ Send to PDFShift for rendering
+    const pdfResponse = await fetch("https://api.pdfshift.io/v3/convert/", {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${btoa(process.env.PDFSHIFT_KEY + ":")}`,
+        "Content-Type": "application/json",
       },
-    });
-    const page = await browser.newPage();
-
-    await page.setContent(html, { waitUntil: "networkidle0" });
-
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: { top: "20mm", bottom: "25mm", left: "20mm", right: "20mm" },
+      body: JSON.stringify({ source: html }),
     });
 
-    await browser.close();
+    if (!pdfResponse.ok) throw new Error("PDF service failed");
 
-    return new Response(pdfBuffer, {
+    const pdf = await pdfResponse.arrayBuffer();
+
+    return new Response(pdf, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
@@ -76,6 +53,7 @@ export async function GET(req, { params }) {
     });
   }
 }
+
 
 function buildPrescriptionHtml(rec) {
   const now = dayjs(rec.created_at).format("DD MMM YYYY, HH:mm");
