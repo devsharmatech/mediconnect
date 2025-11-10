@@ -17,14 +17,31 @@ export async function POST(req) {
       );
     }
 
-    // Step 1: Check if input is medical-related
+    // Step 1: Strict intent filter
     const checkPrompt = `
-You are a strict classifier for a medical triage assistant.
+You are a strict classifier for a healthcare assistant.
 
-Determine if the following user message is **medical-related** (describing symptoms, health concerns, illnesses, pain, or medications)
-or **non-medical** (like greetings, jokes, general topics, etc.).
+Determine if the user's message is **medical-related** — meaning it involves
+symptoms, diseases, body parts, pain, health issues, medications, or treatment.
 
-Return strictly in JSON format:
+If it is **not clearly medical or disease-related**, mark it as false.
+
+Examples of valid (is_medical = true):
+- "I have a headache and fever"
+- "My stomach hurts"
+- "I feel dizzy"
+- "What causes diabetes?"
+- "Is chest pain serious?"
+
+Examples of invalid (is_medical = false):
+- "Who won the cricket match?"
+- "Tell me a joke"
+- "What time is it?"
+- "Play a song"
+- "Who is the Prime Minister?"
+- "Open Google"
+
+Return **only JSON**:
 {
   "is_medical": true | false
 }
@@ -40,27 +57,29 @@ User message: "${initial_symptoms}"
     let classification;
     try {
       classification = JSON.parse(checkRes.choices?.[0]?.message?.content || "{}");
-    } catch (err) {
-      classification = { is_medical: true }; // default fallback
+    } catch {
+      classification = { is_medical: false };
     }
 
-    // Step 2: Stop if not medical
+    // Step 2: Block all non-medical inputs
     if (!classification.is_medical) {
       return NextResponse.json({
         status: false,
-        message:
-          "Sorry, I can only assist with medical-related concerns. Please describe your symptoms or health issue.",
+        message: "Sorry, I can only answer medical or disease-related questions.",
       });
     }
 
-    // Step 3: Proceed with question generation
+    // Step 3: Proceed for medical inputs only
     const screening_id = uuidv4();
 
     const prompt = `
-You are Mediconnect AI — a clinical triage assistant.
-A patient reports: "${initial_symptoms}".
+You are Mediconnect AI — a professional medical triage assistant.
 
-Ask ONE short, clear follow-up question to understand more about their condition.
+The patient says: "${initial_symptoms}".
+
+Ask ONE short, clear, medically-relevant follow-up question to understand more about their symptoms.
+Do NOT answer non-medical questions.
+
 Return strictly JSON:
 {
   "question": { "id": "q1", "text": "string", "type": "text" }
@@ -75,18 +94,18 @@ Return strictly JSON:
     let aiData;
     try {
       aiData = JSON.parse(aiRes.choices?.[0]?.message?.content || "{}");
-    } catch (err) {
+    } catch {
       aiData = {
         question: { id: "q1", text: "Can you tell me more about your symptoms?", type: "text" },
       };
     }
 
-    // Step 4: Save to Supabase
+    // Step 4: Store in Supabase
     await supabase.from("screening_sessions").insert([
       {
         id: screening_id,
         patient_id,
-        stage: 0, // 👈 stage starts at 0
+        stage: 0, // always starts at stage 0
         initial_symptoms,
         questions: [aiData.question],
         answers: [{ question_id: "q0", answer: initial_symptoms }],
@@ -99,7 +118,7 @@ Return strictly JSON:
     return NextResponse.json({
       status: true,
       screening_id,
-      stage: 0, // 👈 returned as 0 too
+      stage: 0,
       next_question: aiData.question,
     });
   } catch (error) {

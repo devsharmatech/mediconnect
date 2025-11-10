@@ -4,13 +4,16 @@ import { openai, supabase } from "@/lib/supabaseAdmin";
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { screening_id, answer } = await body;
+    const { screening_id, answer } = body;
 
     if (!screening_id || !answer) {
-      return NextResponse.json({ status: false, message: "screening_id and answer required" }, { status: 400 });
+      return NextResponse.json(
+        { status: false, message: "screening_id and answer required" },
+        { status: 400 }
+      );
     }
 
-    // Fetch session
+    // Step 1: Fetch screening session
     const { data: screening, error } = await supabase
       .from("screening_sessions")
       .select("*")
@@ -18,28 +21,77 @@ export async function POST(req) {
       .single();
 
     if (error || !screening) {
-      return NextResponse.json({ status: false, message: "Screening not found" }, { status: 404 });
+      return NextResponse.json(
+        { status: false, message: "Screening not found" },
+        { status: 404 }
+      );
     }
 
     if (screening.status === "complete") {
-      return NextResponse.json({ status: false, message: "Screening already completed", next_steps: "start_again_screening_if_needed" }, { status: 400 });
+      return NextResponse.json(
+        {
+          status: false,
+          message: "Screening already completed",
+          next_steps: "start_again_screening_if_needed",
+        },
+        { status: 400 }
+      );
     }
 
-    // Update answers
-    const answers = Array.isArray(screening.answers) ? [...screening.answers] : [];
-    const stage = screening.stage || 1;
+    // 🧠 Step 2: Validate that the answer is medical-related
+    const checkPrompt = `
+You are a strict classifier for a medical triage assistant.
+Determine if the user's answer below is **medical-related** — meaning it describes
+symptoms, diseases, body issues, medications, or treatments.
+
+If the answer is unrelated (greetings, jokes, sports, general talk), mark it as false.
+
+Return only valid JSON:
+{
+  "is_medical": true | false
+}
+
+User message: "${answer}"
+`;
+
+    const checkRes = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "system", content: checkPrompt }],
+    });
+
+    let classification;
+    try {
+      classification = JSON.parse(checkRes.choices?.[0]?.message?.content || "{}");
+    } catch {
+      classification = { is_medical: false }; // default to false if uncertain
+    }
+
+    // ❌ Step 3: If not medical — don't progress, just respond
+    if (!classification.is_medical) {
+      return NextResponse.json({
+        status: false,
+        message:
+          "Sorry, your response doesn’t appear to be related to a medical condition. Please answer with information about your symptoms or health issue.",
+      });
+    }
+
+    // ✅ Step 4: Proceed if valid
+    const answers = Array.isArray(screening.answers)
+      ? [...screening.answers]
+      : [];
+    const stage = screening.stage || 0;
     answers.push({ question_id: `q${stage}`, answer });
 
     // If stage < 5, ask next question
     if (stage < 5) {
       const prompt = `
-You are Mediconnect AI — a triage assistant.
-The patient initially reported: "${screening.initial_symptom}".
+You are Mediconnect AI — a clinical triage assistant.
+The patient initially reported: "${screening.initial_symptoms}".
 Previous Q&A:
 ${answers.map((a, i) => `${i + 1}. ${a.question_id}: ${a.answer}`).join("\n")}
 
-Now ask ONE next follow-up question to understand more.
-Return only JSON:
+Ask ONE next short medical follow-up question to understand more.
+Return strictly JSON:
 {
   "question": { "id": "q${stage + 1}", "text": "string", "type": "text" }
 }
@@ -50,10 +102,20 @@ Return only JSON:
         messages: [{ role: "system", content: prompt }],
       });
 
-      const content = aiRes.choices?.[0]?.message?.content;
-      const aiData = JSON.parse(content);
+      let aiData;
+      try {
+        aiData = JSON.parse(aiRes.choices?.[0]?.message?.content || "{}");
+      } catch {
+        aiData = {
+          question: {
+            id: `q${stage + 1}`,
+            text: "Can you tell me more about your symptoms?",
+            type: "text",
+          },
+        };
+      }
 
-      // Update stage & question
+      // ✅ Update stage only if valid medical answer
       await supabase
         .from("screening_sessions")
         .update({
@@ -72,10 +134,10 @@ Return only JSON:
       });
     }
 
-    // ---- If stage == 5: return diagnosis ----
-    const prompt = `
+    // 🩺 Step 5: Generate final diagnosis at stage == 5
+    const diagnosisPrompt = `
 You are Mediconnect AI — a clinical assistant.
-The patient initially said: "${screening.initial_symptom}"
+The patient initially said: "${screening.initial_symptoms}"
 Their answers were:
 ${answers.map((a, i) => `${i + 1}. ${a.question_id}: ${a.answer}`).join("\n")}
 
@@ -93,7 +155,7 @@ Now analyze and return strictly JSON:
 
     const aiRes = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [{ role: "system", content: prompt }],
+      messages: [{ role: "system", content: diagnosisPrompt }],
     });
 
     const content = aiRes.choices?.[0]?.message?.content;
@@ -117,9 +179,11 @@ Now analyze and return strictly JSON:
       analysis: aiData,
       message: "Screening complete",
     });
-
   } catch (error) {
     console.error("Answer Error:", error);
-    return NextResponse.json({ status: false, message: error.message }, { status: 500 });
+    return NextResponse.json(
+      { status: false, message: error.message },
+      { status: 500 }
+    );
   }
 }
