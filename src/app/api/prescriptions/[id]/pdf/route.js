@@ -6,11 +6,11 @@ import dayjs from "dayjs";
 let puppeteer;
 let chromium;
 
-if (process.env.VERCEL) {
-  puppeteer = await import("puppeteer-core");
-  chromium = await import("@sparticuz/chromium");
+if (isVercel) {
+  puppeteer = (await import("puppeteer-core")).default;
+  chromium = (await import("@sparticuz/chromium")).default;
 } else {
-  puppeteer = await import("puppeteer");
+  puppeteer = (await import("puppeteer")).default;
   chromium = null;
 }
 
