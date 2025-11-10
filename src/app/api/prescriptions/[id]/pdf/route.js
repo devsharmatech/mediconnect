@@ -105,6 +105,63 @@ export async function GET(req, { params }) {
     });
   }
 }
+function renderDiseaseInfo(diseaseInfo) {
+  if (!diseaseInfo) return "Not specified";
+
+  let info = diseaseInfo;
+  if (typeof diseaseInfo === "string") {
+    try {
+      info = JSON.parse(diseaseInfo);
+    } catch {
+      return diseaseInfo; // fallback to raw string
+    }
+  }
+
+  // Format structured AI data
+  const parts = [];
+
+  if (info.summary) parts.push(`<p><strong>Summary:</strong> ${info.summary}</p>`);
+  if (info.urgency)
+    parts.push(`<p><strong>Urgency:</strong> ${info.urgency}</p>`);
+
+  if (info.probable_diagnoses?.length) {
+    const diagList = info.probable_diagnoses
+      .map(
+        (d) =>
+          `<li>${d.name} — <em>${(d.confidence * 100).toFixed(1)}%</em> confidence</li>`
+      )
+      .join("");
+    parts.push(`<p><strong>Probable Diagnoses:</strong></p><ul>${diagList}</ul>`);
+  }
+
+  if (info.recommended_lab_tests?.length) {
+    const labList = info.recommended_lab_tests
+      .map((t) => `<li>${t}</li>`)
+      .join("");
+    parts.push(`<p><strong>Recommended Lab Tests:</strong></p><ul>${labList}</ul>`);
+  }
+
+  if (info.recommended_medicines?.length) {
+    const medList = info.recommended_medicines
+      .map(
+        (m) =>
+          `<li>${m.name} (${m.dose}) — ${m.notes || ""}</li>`
+      )
+      .join("");
+    parts.push(`<p><strong>Recommended Medicines:</strong></p><ul>${medList}</ul>`);
+  }
+
+  if (info.recommended_specialties?.length) {
+    const specList = info.recommended_specialties
+      .map((s) => `<li>${s}</li>`)
+      .join("");
+    parts.push(`<p><strong>Recommended Specialties:</strong></p><ul>${specList}</ul>`);
+  }
+
+  return parts.length
+    ? `<div class="disease-info">${parts.join("")}</div>`
+    : "Not specified";
+}
 
 function buildPrescriptionHtml(rec) {
   const now = dayjs(rec.created_at).format("DD MMM YYYY, HH:mm");
@@ -497,14 +554,14 @@ function buildPrescriptionHtml(rec) {
               rec.appointments?.status || "-"
             }
           </div>
-          <div class="info-group">
-            <span class="info-label">Condition:</span> ${
-              rec.appointments?.disease_info || "Not specified"
-            }
+          
           </div>
-        </div>
-      </div>
-    </div>
+          </div>
+          </div>
+          <div class="info-group">
+  <span class="info-label">AI Analysis:</span>
+  ${renderDiseaseInfo(rec.appointments?.disease_info)}
+</div>
 
     <!-- Prescribed Medicines -->
     <div class="section">
