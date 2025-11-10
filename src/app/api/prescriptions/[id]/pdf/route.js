@@ -27,6 +27,7 @@ export async function GET(req, { params }) {
           clinic_address,
           consultation_fee,
           rating,
+          license_number,
           signature_url
         ),
         patient_details:patient_id (
@@ -389,7 +390,7 @@ function buildPrescriptionHtml(rec) {
 
     @media print {
       .page {
-        padding: 15mm 15mm 20mm 15mm;
+        padding: 5mm 5mm 5mm 5mm;
       }
     }
   </style>
@@ -430,7 +431,7 @@ function buildPrescriptionHtml(rec) {
           <div>Consultation Fee: <span class="consultation-fee">₹${
             rec.doctor_details?.consultation_fee || 0
           }</span></div>
-          <div>License: MED/${rec.doctor_details?.id || "XXXXX"}</div>
+          <div>License: MED/${rec.doctor_details?.license_number || "XXXXX"}</div>
         </div>
       </div>
     </div>
@@ -560,7 +561,7 @@ function buildPrescriptionHtml(rec) {
           <div class="doctor-specialization">
             ${rec.doctor_details?.specialization || "Medical Practitioner"}
           </div>
-          <div>License No: MED/${rec.doctor_details?.id || "XXXXX"}</div>
+          <div>License No: MED/${rec.doctor_details?.license_number || "XXXXX"}</div>
         </div>
       </div>
     </div>
