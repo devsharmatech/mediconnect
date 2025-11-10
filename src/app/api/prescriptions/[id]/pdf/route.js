@@ -1,9 +1,18 @@
 import { supabase } from "@/lib/supabaseAdmin";
 import { failure } from "@/lib/response";
 import { corsHeaders } from "@/lib/cors";
-import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
 import dayjs from "dayjs";
+
+let puppeteer;
+let chromium;
+
+if (process.env.VERCEL) {
+  puppeteer = await import("puppeteer-core");
+  chromium = await import("@sparticuz/chromium");
+} else {
+  puppeteer = await import("puppeteer");
+  chromium = null;
+}
 
 export async function OPTIONS() {
   return new Response("OK", { headers: corsHeaders });
@@ -12,42 +21,9 @@ export async function OPTIONS() {
 export async function GET(req, { params }) {
   try {
     const { id } = await params;
-
     const { data: rec, error } = await supabase
       .from("prescriptions")
-      .select(
-        `
-        *,
-        doctor_details:doctor_id (
-          id,
-          full_name,
-          email,
-          specialization,
-          qualification,
-          clinic_name,
-          clinic_address,
-          consultation_fee,
-          rating,
-          signature_url
-        ),
-        patient_details:patient_id (
-          id,
-          full_name,
-          email,
-          gender,
-          date_of_birth,
-          blood_group,
-          address
-        ),
-        appointments:appointment_id (
-          id,
-          appointment_date,
-          appointment_time,
-          status,
-          disease_info
-        )
-      `
-      )
+      .select("*")
       .eq("id", id)
       .single();
 
@@ -55,14 +31,22 @@ export async function GET(req, { params }) {
 
     const html = buildPrescriptionHtml(rec);
 
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    });
+    const isVercel = !!process.env.VERCEL;
+    const launchOptions = isVercel
+      ? {
+          args: chromium.args,
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+        }
+      : {
+          headless: true,
+          args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        };
 
+    const browser = await puppeteer.launch(launchOptions);
     const page = await browser.newPage();
+
     await page.setContent(html, { waitUntil: "networkidle0" });
 
     const pdfBuffer = await page.pdf({
