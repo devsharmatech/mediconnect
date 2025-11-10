@@ -40,18 +40,23 @@ export async function POST(req) {
 
     // 🧠 Step 2: Validate that the answer is medical-related
     const checkPrompt = `
-You are a strict classifier for a medical triage assistant.
-Determine if the user's answer below is **medical-related** — meaning it describes
-symptoms, diseases, body issues, medications, or treatments.
+You are a strict but language-aware classifier for a medical triage assistant.
 
-If the answer is unrelated (greetings, jokes, sports, general talk), mark it as false.
+Determine if the user's response is **related to a medical condition or symptom**.
+This includes:
+- Descriptions of pain, discomfort, fever, cold, cough, dizziness, etc.
+- Durations (like "2 days se", "4 months se", "kal se", "since yesterday").
+- Mentions of body parts, medicines, health problems, or symptoms.
+
+The user might respond in **Hindi, English, or mixed Hinglish**.
+If the answer is about how long, how severe, what kind, or where the symptom occurs — consider it medical.
 
 Return only valid JSON:
 {
   "is_medical": true | false
 }
 
-User message: "${answer}"
+User response: "${answer}"
 `;
 
     const checkRes = await openai.chat.completions.create({
