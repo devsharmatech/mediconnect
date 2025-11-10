@@ -84,6 +84,7 @@ Now analyze and return strictly JSON:
   "summary": "",
   "probable_diagnoses": [{"name": "", "confidence": 0.0}],
   "recommended_specialties": ["", ""],
+  "specializations": ["", ""],
   "recommended_lab_tests": ["", ""],
   "recommended_medicines": [{"name": "", "dose": "", "notes": ""}],
   "urgency": "routine|urgent|emergency"
