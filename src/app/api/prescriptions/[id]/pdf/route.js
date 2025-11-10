@@ -169,7 +169,7 @@ function buildPrescriptionHtml(rec) {
       line-height: 1.4;
     }
     .page {
-      padding: 20mm 20mm 25mm 20mm;
+      padding: 5mm 5mm 5mm 5mm;
       position: relative;
       box-sizing: border-box;
     }
@@ -178,7 +178,7 @@ function buildPrescriptionHtml(rec) {
     .header {
       border-bottom: 3px double #2c5aa0;
       padding-bottom: 15px;
-      margin-bottom: 25px;
+      margin-bottom: 15px;
       position: relative;
     }
     .header-top {
