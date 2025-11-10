@@ -10,7 +10,7 @@ if (process.env.VERCEL) {
   puppeteer = (await import("puppeteer-core")).default;
   chromium = (await import("@sparticuz/chromium")).default;
 } else {
-  puppeteer = (await import("puppeteer")).default;
+  puppeteer = null;
   chromium = null;
 }
 export async function OPTIONS() {
