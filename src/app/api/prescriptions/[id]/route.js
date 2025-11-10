@@ -6,57 +6,56 @@ export async function OPTIONS() {
   return new Response("OK", { headers: corsHeaders });
 }
 
-
 export async function GET(req, { params }) {
   try {
     const { id } = await params;
 
     const { data: prescription, error } = await supabase
       .from("prescriptions")
-      .select(`
-        id,
-        appointment_id,
-        doctor_id,
-        patient_id,
-        medicines,
-        lab_tests,
-        special_message,
-        ai_analysis,
-        created_at,
-        updated_at,
-        -- Join appointment details
-        appointments:appointment_id (
-          id,
-          appointment_date,
-          appointment_time,
-          status,
-          disease_info
-        ),
-        -- Join doctor details
-        doctor_details:doctor_id (
-          id,
-          full_name,
-          email,
-          specialization,
-          qualification,
-          experience_years,
-          clinic_name,
-          clinic_address,
-          consultation_fee,
-          rating,
-          total_reviews
-        ),
-        -- Join patient details
-        patient_details:patient_id (
-          id,
-          full_name,
-          email,
-          gender,
-          date_of_birth,
-          blood_group,
-          address
-        )
-      `)
+      .select(
+        `
+    id,
+    appointment_id,
+    doctor_id,
+    patient_id,
+    medicines,
+    lab_tests,
+    special_message,
+    ai_analysis,
+    created_at,
+    updated_at,
+    appointments:appointment_id (
+      id,
+      appointment_date,
+      appointment_time,
+      status,
+      disease_info
+    ),
+    doctor_details:doctor_id (
+      id,
+      full_name,
+      email,
+      specialization,
+      qualification,
+      experience_years,
+      clinic_name,
+      clinic_address,
+      consultation_fee,
+      rating,
+      total_reviews,
+      signature_url
+    ),
+    patient_details:patient_id (
+      id,
+      full_name,
+      email,
+      gender,
+      date_of_birth,
+      blood_group,
+      address
+    )
+  `
+      )
       .eq("id", id)
       .single();
 
