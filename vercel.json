@@ -1,9 +1,9 @@
 {
   "functions": {
     "app/api/**/*.js": {
-      "runtime": "vercel-nodejs@18.0.0",
-      "memory": 1024,
-      "maxDuration": 60
+      "runtime": "vercel-nodejs@20.0.0",
+      "maxDuration": 60,
+      "memory": 1024
     }
   }
 }

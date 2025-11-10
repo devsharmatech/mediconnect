@@ -30,7 +30,6 @@ export async function GET(req, { params }) {
 
     const html = buildPrescriptionHtml(rec);
 
-    const isVercel = !!process.env.VERCEL;
     const browser = await puppeteer.launch({
       args: [
         ...chromium.args,
