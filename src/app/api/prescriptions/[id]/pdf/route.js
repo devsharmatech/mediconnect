@@ -57,7 +57,7 @@ export async function GET(req, { params }) {
     const pdfResponse = await fetch("https://api.pdfshift.io/v3/convert/pdf", {
       method: "POST",
       headers: {
-        Authorization: `Basic ${btoa(process.env.PDFSHIFT_KEY + ":")}`,
+        "X-API-Key": `${process.env.PDFSHIFT_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
