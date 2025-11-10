@@ -122,7 +122,7 @@ export async function GET(req, { params }) {
 
 export async function PUT(req, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const updates = await req.json();
 
     const { data, error } = await supabase
