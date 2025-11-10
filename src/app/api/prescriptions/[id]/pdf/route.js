@@ -64,7 +64,7 @@ export async function GET(req, { params }) {
         source: html,
         use_print: false,
         landscape: false,
-        margin: { top: "20mm", bottom: "25mm", left: "20mm", right: "20mm" },
+        margin: { top: "5mm", bottom: "5mm", left: "5mm", right: "5mm" },
       }),
     });
 
