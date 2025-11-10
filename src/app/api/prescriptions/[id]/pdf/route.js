@@ -1,9 +1,8 @@
 import { supabase } from "@/lib/supabaseAdmin";
 import { failure } from "@/lib/response";
 import { corsHeaders } from "@/lib/cors";
-import dayjs from "dayjs";
 
-export const runtime = "edge"; // ✅ Vercel Edge compatible
+import dayjs from "dayjs";
 
 export async function OPTIONS() {
   return new Response("OK", { headers: corsHeaders });
@@ -15,37 +14,87 @@ export async function GET(req, { params }) {
 
     const { data: rec, error } = await supabase
       .from("prescriptions")
-      .select(`*, doctor_details:doctor_id(*), patient_details:patient_id(*), appointments:appointment_id(*)`)
+      .select(
+        `
+        *,
+        doctor_details:doctor_id (
+          id,
+          full_name,
+          email,
+          specialization,
+          qualification,
+          clinic_name,
+          clinic_address,
+          consultation_fee,
+          rating,
+          signature_url
+        ),
+        patient_details:patient_id (
+          id,
+          full_name,
+          email,
+          gender,
+          date_of_birth,
+          blood_group,
+          address
+        ),
+        appointments:appointment_id (
+          id,
+          appointment_date,
+          appointment_time,
+          status,
+          disease_info
+        )
+      `
+      )
       .eq("id", id)
       .single();
 
-    if (error || !rec) throw new Error("Prescription not found");
+    if (error || !rec) throw new Error("Prescription not found.");
 
-    // Build HTML
     const html = buildPrescriptionHtml(rec);
 
-    // ✅ Send to PDFShift for rendering
     const pdfResponse = await fetch("https://api.pdfshift.io/v3/convert/", {
       method: "POST",
       headers: {
         Authorization: `Basic ${btoa(process.env.PDFSHIFT_KEY + ":")}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ source: html }),
+      body: JSON.stringify({
+        source: html,
+        use_print: false,
+        landscape: false,
+        margin: { top: "20mm", bottom: "25mm", left: "20mm", right: "20mm" },
+      }),
     });
 
-    if (!pdfResponse.ok) throw new Error("PDF service failed");
+    if (!pdfResponse.ok) throw new Error("PDF service error");
 
-    const pdf = await pdfResponse.arrayBuffer();
+    const pdfBuffer = await pdfResponse.arrayBuffer();
 
-    return new Response(pdf, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="prescription_${id}.pdf"`,
-        ...corsHeaders,
-      },
-    });
+    // ✅ Optionally upload to Supabase Storage
+    await supabase.storage
+      .from("prescriptions")
+      .upload(`pdfs/${id}.pdf`, new Blob([pdfBuffer]), {
+        contentType: "application/pdf",
+        upsert: true,
+      });
+
+    const { data: publicUrlData } = supabase.storage
+      .from("prescriptions")
+      .getPublicUrl(`pdfs/${id}.pdf`);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: "Prescription PDF generated successfully.",
+        url: publicUrlData.publicUrl,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
+    );
   } catch (error) {
     console.error("PDF generation error:", error);
     return failure("Failed to generate PDF.", error.message, 500, {
@@ -53,7 +102,6 @@ export async function GET(req, { params }) {
     });
   }
 }
-
 
 function buildPrescriptionHtml(rec) {
   const now = dayjs(rec.created_at).format("DD MMM YYYY, HH:mm");
