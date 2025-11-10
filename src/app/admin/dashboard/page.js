@@ -20,6 +20,7 @@ import {
   ShoppingCart,
   UserCog,
   RefreshCw,
+  IndianRupee,
 } from "lucide-react";
 import {
   BarChart,
@@ -36,7 +37,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
-
+import { motion, AnimatePresence } from "framer-motion";
 export default function AdminDashboard() {
   const router = useRouter();
   const [dateRange, setDateRange] = useState("week");
@@ -67,20 +68,20 @@ export default function AdminDashboard() {
     try {
       setError(null);
       setLoading(true);
-      
+
       const params = new URLSearchParams({
         dateRange,
-        ...(dateRange === 'custom' && { startDate, endDate })
+        ...(dateRange === "custom" && { startDate, endDate }),
       });
 
       const response = await fetch(`/api/admin/dashboard?${params}`);
-      
+
       if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data');
+        throw new Error("Failed to fetch dashboard data");
       }
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         setDashboardData(result.data);
       } else {
@@ -88,63 +89,65 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       setError(error.message);
-      console.error('Failed to fetch dashboard data:', error);
+      console.error("Failed to fetch dashboard data:", error);
     } finally {
       setLoading(false);
     }
   };
 
   // Stats Data based on real data
-  const stats = dashboardData ? [
-    {
-      title: "Total Patients",
-      value: dashboardData.stats.totalPatients?.toLocaleString() || "0",
-      change: "+12%",
-      icon: <Users className="w-6 h-6" />,
-      color: "bg-blue-500",
-      trend: "up",
-    },
-    {
-      title: "Total Doctors",
-      value: dashboardData.stats.totalDoctors?.toLocaleString() || "0",
-      change: "+5%",
-      icon: <Stethoscope className="w-6 h-6" />,
-      color: "bg-green-500",
-      trend: "up",
-    },
-    {
-      title: "Appointments",
-      value: dashboardData.stats.totalAppointments?.toLocaleString() || "0",
-      change: "+8%",
-      icon: <Calendar className="w-6 h-6" />,
-      color: "bg-purple-500",
-      trend: "up",
-    },
-    {
-      title: "Revenue",
-      value: `$${(dashboardData.stats.totalRevenue || 0).toLocaleString()}`,
-      change: "+23%",
-      icon: <DollarSign className="w-6 h-6" />,
-      color: "bg-yellow-500",
-      trend: "up",
-    },
-    {
-      title: "Labs",
-      value: dashboardData.stats.totalLabs?.toLocaleString() || "0",
-      change: "+3%",
-      icon: <LabIcon className="w-6 h-6" />,
-      color: "bg-red-500",
-      trend: "up",
-    },
-    {
-      title: "Chemists",
-      value: dashboardData.stats.totalChemists?.toLocaleString() || "0",
-      change: "+7%",
-      icon: <ShoppingCart className="w-6 h-6" />,
-      color: "bg-indigo-500",
-      trend: "up",
-    },
-  ] : [];
+  const stats = dashboardData
+    ? [
+        {
+          title: "Total Patients",
+          value: dashboardData.stats.totalPatients?.toLocaleString() || "0",
+          change: "+12%",
+          icon: <Users className="w-6 h-6" />,
+          color: "bg-blue-500",
+          trend: "up",
+        },
+        {
+          title: "Total Doctors",
+          value: dashboardData.stats.totalDoctors?.toLocaleString() || "0",
+          change: "+5%",
+          icon: <Stethoscope className="w-6 h-6" />,
+          color: "bg-green-500",
+          trend: "up",
+        },
+        {
+          title: "Appointments",
+          value: dashboardData.stats.totalAppointments?.toLocaleString() || "0",
+          change: "+8%",
+          icon: <Calendar className="w-6 h-6" />,
+          color: "bg-purple-500",
+          trend: "up",
+        },
+        {
+          title: "Revenue",
+          value: `₹${(dashboardData.stats.totalRevenue || 0).toLocaleString()}`,
+          change: "+23%",
+          icon: <IndianRupee className="w-6 h-6" />,
+          color: "bg-yellow-500",
+          trend: "up",
+        },
+        {
+          title: "Labs",
+          value: dashboardData.stats.totalLabs?.toLocaleString() || "0",
+          change: "+3%",
+          icon: <LabIcon className="w-6 h-6" />,
+          color: "bg-red-500",
+          trend: "up",
+        },
+        {
+          title: "Chemists",
+          value: dashboardData.stats.totalChemists?.toLocaleString() || "0",
+          change: "+7%",
+          icon: <ShoppingCart className="w-6 h-6" />,
+          color: "bg-indigo-500",
+          trend: "up",
+        },
+      ]
+    : [];
 
   // Custom Tooltip for Charts
   const CustomTooltip = ({ active, payload, label }) => {
@@ -173,13 +176,19 @@ export default function AdminDashboard() {
     return (
       <main className="flex-1 overflow-auto relative z-0">
         <div className="p-4 md:p-4 lg:p-4 bg-transparent">
-          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-md border border-gray-200/50 dark:border-gray-700/50"
+          >
             <div className="flex items-center justify-center h-96">
-              <div className="text-lg text-gray-600 dark:text-gray-400">
-                Loading dashboard data...
-              </div>
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-8 h-8 border-4 border-gray-800 border-t-transparent rounded-full"
+              />
             </div>
-          </div>
+          </motion.div>
         </div>
       </main>
     );
@@ -189,12 +198,14 @@ export default function AdminDashboard() {
     return (
       <main className="flex-1 overflow-auto relative z-0">
         <div className="p-4 md:p-4 lg:p-4 bg-transparent">
-          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50">
+          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-md border border-gray-200/50 dark:border-gray-700/50">
             <div className="flex items-center justify-center h-96">
               <div className="text-center">
                 <div className="text-red-500 text-lg mb-2">Error</div>
-                <div className="text-gray-600 dark:text-gray-400 mb-4">{error}</div>
-                <button 
+                <div className="text-gray-600 dark:text-gray-400 mb-4">
+                  {error}
+                </div>
+                <button
                   onClick={fetchDashboardData}
                   className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors"
                 >
@@ -211,7 +222,7 @@ export default function AdminDashboard() {
   return (
     <main className="flex-1 overflow-auto relative z-0">
       <div className="p-4 md:p-4 lg:p-4 bg-transparent">
-        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50">
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-md border border-gray-200/50 dark:border-gray-700/50">
           <div className="space-y-6 p-4 md:p-6 lg:p-8">
             {/* Header Section */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -223,7 +234,6 @@ export default function AdminDashboard() {
                   Comprehensive overview of your healthcare facility
                 </p>
               </div>
-              
             </div>
 
             {/* Filters */}
@@ -267,7 +277,7 @@ export default function AdminDashboard() {
                   )}
                 </div>
 
-                <button 
+                <button
                   onClick={fetchDashboardData}
                   className="flex items-center space-x-2 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg transition-colors cursor-pointer"
                 >
@@ -291,15 +301,6 @@ export default function AdminDashboard() {
                       </p>
                       <p className="text-2xl font-bold text-gray-800 dark:text-gray-200 mt-2">
                         {stat.value}
-                      </p>
-                      <p
-                        className={`text-sm font-medium mt-1 ${
-                          stat.change.startsWith("+")
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {stat.change}
                       </p>
                     </div>
                     <div className={`${stat.color} p-3 rounded-xl text-white`}>
@@ -325,9 +326,18 @@ export default function AdminDashboard() {
                 </div>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={dashboardData?.charts.appointmentChart || []}>
-                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                      <XAxis dataKey="day" className="text-sm" tick={{ fill: "#6B7280" }} />
+                    <BarChart
+                      data={dashboardData?.charts.appointmentChart || []}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        className="opacity-30"
+                      />
+                      <XAxis
+                        dataKey="day"
+                        className="text-sm"
+                        tick={{ fill: "#6B7280" }}
+                      />
                       <YAxis className="text-sm" tick={{ fill: "#6B7280" }} />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend />
@@ -361,11 +371,20 @@ export default function AdminDashboard() {
                 </div>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={dashboardData?.charts.monthlyRevenue || []}>
-                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                      <XAxis dataKey="month" className="text-sm" tick={{ fill: "#6B7280" }} />
-                      <YAxis 
-                        className="text-sm" 
+                    <LineChart
+                      data={dashboardData?.charts.monthlyRevenue || []}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        className="opacity-30"
+                      />
+                      <XAxis
+                        dataKey="month"
+                        className="text-sm"
+                        tick={{ fill: "#6B7280" }}
+                      />
+                      <YAxis
+                        className="text-sm"
                         tick={{ fill: "#6B7280" }}
                         tickFormatter={(value) => `$${value / 1000}k`}
                       />
@@ -404,19 +423,33 @@ export default function AdminDashboard() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percentage }) => `${name} (${percentage}%)`}
+                        label={({ name, percentage }) =>
+                          `${name} (${percentage}%)`
+                        }
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        {dashboardData?.charts.ageDistribution?.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={["#4B5563", "#6B7280", "#9CA3AF", "#D1D5DB", "#E5E7EB"][index]} 
-                          />
-                        ))}
+                        {dashboardData?.charts.ageDistribution?.map(
+                          (entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={
+                                [
+                                  "#4B5563",
+                                  "#6B7280",
+                                  "#9CA3AF",
+                                  "#D1D5DB",
+                                  "#E5E7EB",
+                                ][index]
+                              }
+                            />
+                          )
+                        )}
                       </Pie>
-                      <Tooltip formatter={(value, name) => [`${value} patients`, name]} />
+                      <Tooltip
+                        formatter={(value, name) => [`${value} patients`, name]}
+                      />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
@@ -438,7 +471,8 @@ export default function AdminDashboard() {
                     },
                     {
                       label: "Patient Satisfaction",
-                      value: dashboardData?.quickStats?.patientSatisfaction || "92%",
+                      value:
+                        dashboardData?.quickStats?.patientSatisfaction || "92%",
                       icon: <Eye size={16} />,
                     },
                     {
@@ -496,11 +530,11 @@ export default function AdminDashboard() {
                   >
                     <div
                       className={`w-2 h-2 rounded-full ${
-                        activity.status === 'completed' 
-                          ? "bg-green-500" 
-                          : activity.status === 'booked'
+                        activity.status === "completed"
+                          ? "bg-green-500"
+                          : activity.status === "booked"
                           ? "bg-blue-500"
-                          : activity.status === 'cancelled'
+                          : activity.status === "cancelled"
                           ? "bg-red-500"
                           : "bg-gray-500"
                       }`}

@@ -53,6 +53,11 @@ export default function Sidebar({ open, mobileOpen, onToggle, onCloseMobile }) {
       path: `/admin/appointments`,
     },
     { 
+      name: "Prescriptions", 
+      icon: <ClipboardList size={22} />, 
+      path: `/admin/prescriptions`,
+    },
+    { 
       name: "Chemists", 
       icon: <Pill size={22} />, 
       path: `/admin/chemists`,
