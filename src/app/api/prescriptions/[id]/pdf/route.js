@@ -1,7 +1,8 @@
 import { supabase } from "@/lib/supabaseAdmin";
 import { failure } from "@/lib/response";
 import { corsHeaders } from "@/lib/cors";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
 import dayjs from "dayjs";
 
 export async function OPTIONS() {
@@ -14,7 +15,8 @@ export async function GET(req, { params }) {
 
     const { data: rec, error } = await supabase
       .from("prescriptions")
-      .select(`
+      .select(
+        `
         *,
         doctor_details:doctor_id (
           id,
@@ -44,7 +46,8 @@ export async function GET(req, { params }) {
           status,
           disease_info
         )
-      `)
+      `
+      )
       .eq("id", id)
       .single();
 
@@ -53,15 +56,21 @@ export async function GET(req, { params }) {
     const html = buildPrescriptionHtml(rec);
 
     const browser = await puppeteer.launch({
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
     });
+
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
+
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
       margin: { top: "20mm", bottom: "25mm", left: "20mm", right: "20mm" },
     });
+
     await browser.close();
 
     return new Response(pdfBuffer, {
@@ -121,9 +130,9 @@ function buildPrescriptionHtml(rec) {
           ${(rec.ai_analysis.probable_diagnoses || [])
             .map(
               (d) =>
-                `<li>${d.name} — <em>Confidence:</em> ${(d.confidence * 100).toFixed(
-                  1
-                )}%</li>`
+                `<li>${d.name} — <em>Confidence:</em> ${(
+                  d.confidence * 100
+                ).toFixed(1)}%</li>`
             )
             .join("")}
         </ul>
@@ -391,15 +400,21 @@ function buildPrescriptionHtml(rec) {
       
       <div class="clinic-info-section">
         <div class="clinic-details">
-          <div class="clinic-name">${rec.doctor_details?.clinic_name || "Medical Clinic"}</div>
+          <div class="clinic-name">${
+            rec.doctor_details?.clinic_name || "Medical Clinic"
+          }</div>
           <div>${rec.doctor_details?.clinic_address || "Clinic Address"}</div>
           <div class="doctor-qualification">
-            ${rec.doctor_details?.qualification || ""} | ${rec.doctor_details?.specialization || "General Physician"}
+            ${rec.doctor_details?.qualification || ""} | ${
+    rec.doctor_details?.specialization || "General Physician"
+  }
           </div>
         </div>
         <div class="consultation-info">
-          <div>Consultation Fee: <span class="consultation-fee">₹${rec.doctor_details?.consultation_fee || 0}</span></div>
-          <div>License: MED/${rec.doctor_details?.id || 'XXXXX'}</div>
+          <div>Consultation Fee: <span class="consultation-fee">₹${
+            rec.doctor_details?.consultation_fee || 0
+          }</span></div>
+          <div>License: MED/${rec.doctor_details?.id || "XXXXX"}</div>
         </div>
       </div>
     </div>
@@ -410,24 +425,38 @@ function buildPrescriptionHtml(rec) {
       <div class="patient-grid">
         <div>
           <div class="info-group">
-            <span class="info-label">Name:</span> ${rec.patient_details?.full_name || "-"}
+            <span class="info-label">Name:</span> ${
+              rec.patient_details?.full_name || "-"
+            }
           </div>
           <div class="info-group">
-            <span class="info-label">Gender:</span> ${rec.patient_details?.gender || "-"}
+            <span class="info-label">Gender:</span> ${
+              rec.patient_details?.gender || "-"
+            }
           </div>
           <div class="info-group">
-            <span class="info-label">Date of Birth:</span> ${rec.patient_details?.date_of_birth ? dayjs(rec.patient_details.date_of_birth).format("DD MMM YYYY") : "-"}
+            <span class="info-label">Date of Birth:</span> ${
+              rec.patient_details?.date_of_birth
+                ? dayjs(rec.patient_details.date_of_birth).format("DD MMM YYYY")
+                : "-"
+            }
           </div>
         </div>
         <div>
           <div class="info-group">
-            <span class="info-label">Blood Group:</span> ${rec.patient_details?.blood_group || "-"}
+            <span class="info-label">Blood Group:</span> ${
+              rec.patient_details?.blood_group || "-"
+            }
           </div>
           <div class="info-group">
-            <span class="info-label">Contact:</span> ${rec.patient_details?.email || "-"}
+            <span class="info-label">Contact:</span> ${
+              rec.patient_details?.email || "-"
+            }
           </div>
           <div class="info-group">
-            <span class="info-label">Address:</span> ${rec.patient_details?.address || "-"}
+            <span class="info-label">Address:</span> ${
+              rec.patient_details?.address || "-"
+            }
           </div>
         </div>
       </div>
@@ -447,10 +476,14 @@ function buildPrescriptionHtml(rec) {
         </div>
         <div>
           <div class="info-group">
-            <span class="info-label">Status:</span> ${rec.appointments?.status || "-"}
+            <span class="info-label">Status:</span> ${
+              rec.appointments?.status || "-"
+            }
           </div>
           <div class="info-group">
-            <span class="info-label">Condition:</span> ${rec.appointments?.disease_info || "Not specified"}
+            <span class="info-label">Condition:</span> ${
+              rec.appointments?.disease_info || "Not specified"
+            }
           </div>
         </div>
       </div>
@@ -469,7 +502,10 @@ function buildPrescriptionHtml(rec) {
           </tr>
         </thead>
         <tbody>
-          ${medicinesList || "<tr><td colspan='4' style='text-align: center;'>No medications prescribed</td></tr>"}
+          ${
+            medicinesList ||
+            "<tr><td colspan='4' style='text-align: center;'>No medications prescribed</td></tr>"
+          }
         </tbody>
       </table>
     </div>
@@ -477,7 +513,9 @@ function buildPrescriptionHtml(rec) {
     <!-- Lab Tests -->
     <div class="section">
       <h3>Recommended Laboratory Tests</h3>
-      <ul>${labList || "<li>No laboratory tests recommended at this time</li>"}</ul>
+      <ul>${
+        labList || "<li>No laboratory tests recommended at this time</li>"
+      }</ul>
     </div>
 
     <!-- Doctor's Notes -->
@@ -500,11 +538,13 @@ function buildPrescriptionHtml(rec) {
       <div class="footer-right">
         <div class="signature-box">
           <img src="${signatureUrl}" alt="Doctor's Signature" />
-          <div class="doctor-name">Dr. ${rec.doctor_details?.full_name || ""}</div>
+          <div class="doctor-name">Dr. ${
+            rec.doctor_details?.full_name || ""
+          }</div>
           <div class="doctor-specialization">
             ${rec.doctor_details?.specialization || "Medical Practitioner"}
           </div>
-          <div>License No: MED/${rec.doctor_details?.id || 'XXXXX'}</div>
+          <div>License No: MED/${rec.doctor_details?.id || "XXXXX"}</div>
         </div>
       </div>
     </div>
