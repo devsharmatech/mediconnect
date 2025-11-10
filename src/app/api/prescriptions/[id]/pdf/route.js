@@ -68,7 +68,10 @@ export async function GET(req, { params }) {
       }),
     });
 
-    if (!pdfResponse.ok) throw new Error("PDF service error");
+    if (!pdfResponse.ok) {
+      const errText = await pdfResponse.text();
+      throw new Error(`PDF service error: ${pdfResponse.status} — ${errText}`);
+    }
 
     const pdfBuffer = await pdfResponse.arrayBuffer();
 
