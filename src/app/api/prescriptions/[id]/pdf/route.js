@@ -221,7 +221,6 @@ function buildPrescriptionHtml(rec) {
       background: #f8f9fa;
       padding: 12px 15px;
       border-radius: 4px;
-      border-left: 4px solid #2c5aa0;
       font-size: 12px;
     }
     .clinic-details {
@@ -333,7 +332,6 @@ function buildPrescriptionHtml(rec) {
     /* AI Section */
     .ai-section {
       background: #f0f7ff;
-      border-left: 4px solid #2c5aa0;
       padding: 12px 15px;
       margin: 15px 0;
       border-radius: 0 4px 4px 0;
