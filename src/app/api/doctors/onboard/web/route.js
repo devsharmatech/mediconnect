@@ -127,6 +127,7 @@ export async function POST(req) {
       qualification: parseJSON(formData.get("qualification")),
       clinic_slots: parseJSON(formData.get("clinic_slots")),
       video_slots: parseJSON(formData.get("video_slots")),
+      kyc_data: parseJSON(formData.get("kyc_data")),
       home_slots: parseJSON(formData.get("home_slots")),
       leave_days: parseJSON(formData.get("leave_days")),
       speciality_tags: parseJSON(formData.get("speciality_tags")),

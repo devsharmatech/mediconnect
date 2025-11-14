@@ -30,8 +30,6 @@ import {
 
 export default function DoctorOnboarding() {
   const [currentStep, setCurrentStep] = useState(1);
-  const [kycLoading, setKycLoading] = useState(false);
-  const [kycCompleted, setKycCompleted] = useState(false);
   const [formData, setFormData] = useState({
     // Personal Information
     doctor_name: "",
@@ -48,8 +46,6 @@ export default function DoctorOnboarding() {
     // Clinic Details
     clinic_address: "",
     clinic_photos: [],
-    kyc_data: [],
-    is_kyc: false,
     clinic_lat: "",
     clinic_lng: "",
 
@@ -221,163 +217,6 @@ export default function DoctorOnboarding() {
     "Saturday",
     "Sunday",
   ];
-
-  const handleDigiLockerKYC = async () => {
-    try {
-      setKycLoading(true);
-
-      // Step 1: Get access token
-      const myHeaders = new Headers();
-      myHeaders.append("Content-Type", "application/json");
-
-      const raw = JSON.stringify({
-        company_name: "chandanI1vF",
-        secret_token: "FPWzvCOxPHTXuOXamPLtBgy0d9ve4am3",
-      });
-
-      const requestOptions = {
-        method: "POST",
-        headers: myHeaders,
-        body: raw,
-        redirect: "follow",
-      };
-
-      const tokenResponse = await fetch(
-        "https://digilocker.meon.co.in/get_access_token",
-        requestOptions
-      );
-      const tokenData = await tokenResponse.json();
-      console.log(tokenData);
-      if (!tokenData.client_token) {
-        throw new Error("Failed to get access token");
-      }
-
-      const clientToken = tokenData.client_token;
-      const state = tokenData.state;
-
-      // Step 2: Get DigiLocker URL
-      const urlHeaders = new Headers();
-      urlHeaders.append("Content-Type", "application/json");
-
-      // Use current page URL as redirect URL or your specific thank you page
-      const currentUrl = window.location.href;
-      const redirectUrl = `${
-        currentUrl.split("?")[0]
-      }?kyc_callback=true&state=${state}`;
-
-      const urlRaw = JSON.stringify({
-        client_token: clientToken,
-        redirect_url: redirectUrl,
-        company_name: "chandanI1vF",
-        documents: "aadhaar,pan",
-      });
-
-      const urlRequestOptions = {
-        method: "POST",
-        headers: urlHeaders,
-        body: urlRaw,
-        redirect: "follow",
-      };
-
-      const urlResponse = await fetch(
-        "https://digilocker.meon.co.in/digi_url",
-        urlRequestOptions
-      );
-      const urlData = await urlResponse.json();
-
-      if (urlData.url) {
-        // Store client token for later use
-        localStorage.setItem("digilocker_client_token", clientToken);
-
-        // Redirect to DigiLocker
-        window.location.href = urlData.url;
-      } else {
-        throw new Error("Failed to get DigiLocker URL");
-      }
-    } catch (error) {
-      console.error("DigiLocker KYC error:", error);
-      toast.error("Failed to initiate KYC process. Please try again.");
-      setKycLoading(false);
-    }
-  };
-
-  // Add this useEffect to handle KYC callback
-  useEffect(() => {
-    const handleKycCallback = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const kycCallback = urlParams.get("kyc_callback");
-      const state = urlParams.get("state");
-      const status = true;
-
-      if (kycCallback && state && status) {
-        try {
-          const clientToken = localStorage.getItem("digilocker_client_token");
-
-          if (!clientToken) {
-            throw new Error("No client token found");
-          }
-
-          const dataHeaders = new Headers();
-          dataHeaders.append("Content-Type", "application/json");
-
-          const dataRaw = JSON.stringify({
-            client_token: clientToken,
-            state: state,
-            status: true,
-          });
-
-          const dataRequestOptions = {
-            method: "POST",
-            headers: dataHeaders,
-            body: dataRaw,
-            redirect: "follow",
-          };
-
-          const dataResponse = await fetch(
-            "https://digilocker.meon.co.in/v2/send_entire_data",
-            dataRequestOptions
-          );
-          const kycData = await dataResponse.json();
-
-          if (kycData.status) {
-            if (kycData.data) {
-              const kycInfo = kycData.data;
-              setFormData((prev) => ({
-                ...prev,
-                doctor_name: kycInfo.name || prev.doctor_name,
-                email: kycInfo.email || prev.email,
-                aadhaar: kycInfo.aadhaar_number || prev.aadhaar,
-                pan: kycInfo.pan_number || prev.pan,
-                address: kycInfo.address || prev.address,
-                kyc_data: kycInfo || [],
-                is_kyc: true,
-              }));
-            }
-
-            setKycCompleted(true);
-            toast.success("KYC verification completed successfully!");
-
-            // Clean up URL
-            window.history.replaceState({}, "", window.location.pathname);
-          }
-        } catch (error) {
-          console.error("KYC data fetch error:", error);
-          toast.error("Failed to fetch KYC data. Please try again.");
-        } finally {
-          setKycLoading(false);
-          localStorage.removeItem("digilocker_client_token");
-        }
-      }
-    };
-    window.addEventListener("popstate", handleKycCallback);
-
-    // Also check on mount
-    handleKycCallback();
-
-    return () => {
-      window.removeEventListener("popstate", handleKycCallback);
-    };
-  }, []);
 
   // Initialize time slots
   useEffect(() => {
@@ -638,8 +477,6 @@ export default function DoctorOnboarding() {
           newErrors.qualification = "At least one qualification is required";
         if (!formData.doctor_registration_no)
           newErrors.doctor_registration_no = "Registration number is required";
-        if (!formData.is_kyc)
-          newErrors.kyc_data = "KYC is required";
         break;
 
       case 3:
@@ -699,7 +536,7 @@ export default function DoctorOnboarding() {
 
         break;
     }
-    console.log(newErrors);
+    console.log(newErrors)
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -1164,80 +1001,6 @@ export default function DoctorOnboarding() {
                       <p className="text-red-500 text-sm mt-1 flex items-center">
                         <AlertCircle className="w-4 h-4 mr-1" />
                         {errors.doctor_registration_no}
-                      </p>
-                    )}
-                  </div>
-                  <div className="md:col-span-2">
-                    <div className="bg-gradient-to-r from-blue-50 to-blue-50 border-2 border-blue-200 rounded-xl p-6">
-                      <div className="flex items-center flex-wrap justify-between">
-                        <div className="flex items-center flex-wrap space-x-4">
-                          <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                            <Shield className="w-6 h-6 text-blue-800" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              DigiLocker KYC Verification
-                            </h3>
-                            <p className="text-gray-600 text-sm">
-                              Sync your Aadhaar and PAN details automatically
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center space-x-4">
-                          {kycCompleted ? (
-                            <div className="flex items-center space-x-2 text-green-600">
-                              <CheckCircle className="w-6 h-6" />
-                              <span className="font-semibold">Verified</span>
-                            </div>
-                          ) : (
-                            <motion.button
-                              type="button"
-                              onClick={handleDigiLockerKYC}
-                              disabled={kycLoading}
-                              whileHover={{ scale: kycLoading ? 1 : 1.02 }}
-                              whileTap={{ scale: kycLoading ? 1 : 0.98 }}
-                              className="bg-gradient-to-r from-blue-800 to-blue-800 text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {kycLoading ? (
-                                <div className="flex items-center space-x-2">
-                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                  <span>Processing...</span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center space-x-2">
-                                  <FileCheck className="w-5 h-5" />
-                                  <span>Verify with DigiLocker</span>
-                                </div>
-                              )}
-                            </motion.button>
-                          )}
-                        </div>
-                      </div>
-
-                      {kycCompleted && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200"
-                        >
-                          <div className="flex items-center space-x-2 text-green-800">
-                            <CheckCircle className="w-5 h-5" />
-                            <span className="font-medium">
-                              Your KYC has been verified successfully!
-                            </span>
-                          </div>
-                          <p className="text-green-700 text-sm mt-1">
-                            Your Aadhaar and PAN details have been automatically
-                            synced.
-                          </p>
-                        </motion.div>
-                      )}
-                    </div>
-                    {errors.kyc_data && (
-                      <p className="text-red-500 text-sm mt-1 flex items-center">
-                        <AlertCircle className="w-4 h-4 mr-1" />
-                        {errors.kyc_data}
                       </p>
                     )}
                   </div>
