@@ -144,6 +144,7 @@ export async function POST(req) {
           latitude: formData.get("latitude"),
           longitude: formData.get("longitude"),
           opening_hours: json("opening_hours"),
+          kyc_data: parseJSON(formData.get("kyc_data") || []),
           services: json("services") || [],
           accepts_home_collection: formData.get("accepts_home_collection") === "true",
           general_turnaround: formData.get("general_turnaround"),

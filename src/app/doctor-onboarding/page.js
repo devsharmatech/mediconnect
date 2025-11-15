@@ -26,65 +26,55 @@ import {
   Heart,
   Info,
   Lock,
+  AlertTriangle,
 } from "lucide-react";
+
+// Default form data structure
+const defaultFormData = {
+  doctor_name: "",
+  email: "",
+  phone: "",
+  qualification: [],
+  doctor_registration_no: "",
+  years_experience: "",
+  speciality: [],
+  super_speciality: [],
+  clinic_address: "",
+  clinic_photos: [],
+  kyc_data: [],
+  is_kyc: false,
+  clinic_lat: "",
+  clinic_lng: "",
+  leave_days: [],
+  clinic_slots: {},
+  video_slots: {},
+  home_slots: {},
+  insurance: "",
+  aadhaar: "",
+  pan: "",
+  driving_license: "",
+  address: "",
+  address_proof: null,
+  dmc_mci_nmc_certificates: [],
+  passport_photo: null,
+  digital_signature: "",
+  bank_account_number: "",
+  bank_ifsc_code: "",
+  bank_name: "",
+  bank_branch: "",
+  bpl_service_agreement: false,
+  bpl_preferred_time: "",
+  non_disclosure_agreement: false,
+  terms_conditions_agreement: false,
+  digital_consent: false,
+};
 
 export default function DoctorOnboarding() {
   const [currentStep, setCurrentStep] = useState(1);
   const [kycLoading, setKycLoading] = useState(false);
   const [kycCompleted, setKycCompleted] = useState(false);
-  const [formData, setFormData] = useState({
-    // Personal Information
-    doctor_name: "",
-    email: "",
-    phone: "",
-    qualification: [],
-    doctor_registration_no: "",
-    years_experience: "",
-
-    // Professional Details
-    speciality: [],
-    super_speciality: [],
-
-    // Clinic Details
-    clinic_address: "",
-    clinic_photos: [],
-    kyc_data: [],
-    is_kyc: false,
-    clinic_lat: "",
-    clinic_lng: "",
-
-    // Availability
-    leave_days: [],
-    clinic_slots: {},
-    video_slots: {},
-    home_slots: {},
-
-    // Identity Documents
-    insurance: "",
-    aadhaar: "",
-    pan: "",
-    driving_license: "",
-    address: "",
-
-    // Document Uploads
-    address_proof: null,
-    dmc_mci_nmc_certificates: [],
-    passport_photo: null,
-    digital_signature: "",
-
-    // Bank Details
-    bank_account_number: "",
-    bank_ifsc_code: "",
-    bank_name: "",
-    bank_branch: "",
-
-    // Agreements
-    bpl_service_agreement: false,
-    bpl_preferred_time: "",
-    non_disclosure_agreement: false,
-    terms_conditions_agreement: false,
-    digital_consent: false,
-  });
+  const [formData, setFormData] = useState(defaultFormData);
+  const [isClient, setIsClient] = useState(false);
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -93,6 +83,11 @@ export default function DoctorOnboarding() {
   const [signatureData, setSignatureData] = useState("");
   const [activeSignatureTab, setActiveSignatureTab] = useState("draw");
   const [isDrawing, setIsDrawing] = useState(false);
+  
+  // New state for KYC validation
+  const [showKycMismatchModal, setShowKycMismatchModal] = useState(false);
+  const [kycMismatches, setKycMismatches] = useState([]);
+  const [pendingKycData, setPendingKycData] = useState(null);
 
   const canvasRef = useRef(null);
   const fileInputRefs = useRef({});
@@ -222,9 +217,116 @@ export default function DoctorOnboarding() {
     "Sunday",
   ];
 
+  // Set isClient to true when component mounts on client
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Load form data from localStorage after component mounts on client
+  useEffect(() => {
+    if (isClient) {
+      const savedFormData = localStorage.getItem('doctorOnboardingFormData');
+      const savedCurrentStep = localStorage.getItem('doctorOnboardingCurrentStep');
+      
+      if (savedFormData) {
+        try {
+          const parsedData = JSON.parse(savedFormData);
+          setFormData(prev => ({
+            ...defaultFormData,
+            ...parsedData,
+            clinic_photos: parsedData.clinic_photos || [],
+            dmc_mci_nmc_certificates: parsedData.dmc_mci_nmc_certificates || [],
+          }));
+        } catch (error) {
+          console.error('Error parsing saved form data:', error);
+          localStorage.removeItem('doctorOnboardingFormData');
+        }
+      }
+      
+      if (savedCurrentStep) {
+        setCurrentStep(parseInt(savedCurrentStep));
+      }
+    }
+  }, [isClient]);
+
+  // Save form data to localStorage whenever it changes (client only)
+  useEffect(() => {
+    if (isClient) {
+      localStorage.setItem('doctorOnboardingFormData', JSON.stringify(formData));
+    }
+  }, [formData, isClient]);
+
+  // Save current step to localStorage whenever it changes (client only)
+  useEffect(() => {
+    if (isClient) {
+      localStorage.setItem('doctorOnboardingCurrentStep', currentStep.toString());
+    }
+  }, [currentStep, isClient]);
+
+  // Clean up localStorage when form is successfully submitted
+  const clearLocalStorage = () => {
+    if (isClient) {
+      localStorage.removeItem('doctorOnboardingFormData');
+      localStorage.removeItem('doctorOnboardingCurrentStep');
+      localStorage.removeItem('digilocker_client_token');
+      localStorage.removeItem('doctorOnboardingPreKycData');
+    }
+  };
+
+  // Function to validate KYC data against existing form data
+  const validateKycData = (kycData, currentFormData) => {
+    const mismatches = [];
+
+    // Check name mismatch
+    if (currentFormData.doctor_name && kycData.name && 
+        currentFormData.doctor_name.toLowerCase() !== kycData.name.toLowerCase()) {
+      mismatches.push({
+        field: "doctor_name",
+        label: "Doctor Name",
+        currentValue: currentFormData.doctor_name,
+        kycValue: kycData.name,
+        type: "name"
+      });
+    }
+
+    // Check PAN mismatch
+    if (currentFormData.pan && kycData.pan_number && 
+        currentFormData.pan.toUpperCase() !== kycData.pan_number.toUpperCase()) {
+      mismatches.push({
+        field: "pan",
+        label: "PAN Number",
+        currentValue: currentFormData.pan,
+        kycValue: kycData.pan_number,
+        type: "pan"
+      });
+    }
+
+    // Check Aadhaar last 4 digits mismatch
+    if (currentFormData.aadhaar && kycData.aadhaar_number) {
+      const currentLast4 = currentFormData.aadhaar.slice(-4);
+      const kycLast4 = kycData.aadhaar_number.slice(-4);
+      if (currentLast4 !== kycLast4) {
+        mismatches.push({
+          field: "aadhaar",
+          label: "Aadhaar Number",
+          currentValue: `XXXX-XXXX-${currentLast4}`,
+          kycValue: `XXXX-XXXX-${kycLast4}`,
+          type: "aadhaar"
+        });
+      }
+    }
+
+    return mismatches;
+  };
+
   const handleDigiLockerKYC = async () => {
     try {
       setKycLoading(true);
+      
+      // Store current form data in localStorage before starting KYC process
+      if (isClient) {
+        localStorage.setItem('doctorOnboardingPreKycData', JSON.stringify(formData));
+      }
 
       // Step 1: Get access token
       const myHeaders = new Headers();
@@ -301,6 +403,91 @@ export default function DoctorOnboarding() {
     }
   };
 
+  // Handle KYC data application with validation
+  const applyKycData = (kycData) => {
+    const mismatches = validateKycData(kycData, formData);
+    
+    if (mismatches.length > 0) {
+      // Show mismatch modal
+      setKycMismatches(mismatches);
+      setPendingKycData(kycData);
+      setShowKycMismatchModal(true);
+    } else {
+      // No mismatches, apply KYC data directly while preserving other form data
+      updateFormWithKycData(kycData);
+      toast.success("KYC verification completed successfully!");
+    }
+  };
+
+  // Update form with KYC data while preserving existing form data
+  const updateFormWithKycData = (kycData) => {
+    setFormData((prev) => ({
+      ...prev, // Keep all existing form data
+      doctor_name: kycData.name || prev.doctor_name,
+      email: kycData.email || prev.email,
+      aadhaar: kycData.aadhaar_number || prev.aadhaar,
+      pan: kycData.pan_number || prev.pan,
+      address: kycData.address || prev.address,
+      kyc_data: kycData || [],
+      is_kyc: true,
+    }));
+    setKycCompleted(true);
+    // Clear the pre-KYC data from localStorage after successful application
+    if (isClient) {
+      localStorage.removeItem('doctorOnboardingPreKycData');
+    }
+  };
+
+  // Handle user decision from KYC mismatch modal
+  const handleKycMismatchDecision = (useKycData) => {
+    if (useKycData && pendingKycData) {
+      // User wants to use KYC data - update form with KYC data while preserving other fields
+      updateFormWithKycData(pendingKycData);
+      toast.success("KYC data applied successfully!");
+    } else {
+      // User wants to keep existing data, just mark as verified and restore original form data
+      if (isClient) {
+        const preKycData = localStorage.getItem('doctorOnboardingPreKycData');
+        if (preKycData) {
+          try {
+            const parsedPreKycData = JSON.parse(preKycData);
+            // Restore the original form data and just add KYC verification status
+            setFormData((prev) => ({
+              ...parsedPreKycData, // Restore all original form data
+              kyc_data: pendingKycData || [],
+              is_kyc: true,
+            }));
+          } catch (error) {
+            console.error('Error parsing pre-KYC data:', error);
+            // Fallback: just mark as verified without changing form data
+            setFormData((prev) => ({
+              ...prev,
+              kyc_data: pendingKycData || [],
+              is_kyc: true,
+            }));
+          }
+        } else {
+          // Fallback: just mark as verified without changing form data
+          setFormData((prev) => ({
+            ...prev,
+            kyc_data: pendingKycData || [],
+            is_kyc: true,
+          }));
+        }
+      }
+      setKycCompleted(true);
+      toast.success("KYC verification completed! Your existing data has been preserved.");
+    }
+    
+    setShowKycMismatchModal(false);
+    setPendingKycData(null);
+    setKycMismatches([]);
+    // Clear pre-KYC data from localStorage
+    if (isClient) {
+      localStorage.removeItem('doctorOnboardingPreKycData');
+    }
+  };
+
   // Add this useEffect to handle KYC callback
   useEffect(() => {
     const handleKycCallback = async () => {
@@ -341,21 +528,12 @@ export default function DoctorOnboarding() {
 
           if (kycData.status) {
             if (kycData.data) {
-              const kycInfo = kycData.data;
-              setFormData((prev) => ({
-                ...prev,
-                doctor_name: kycInfo.name || prev.doctor_name,
-                email: kycInfo.email || prev.email,
-                aadhaar: kycInfo.aadhaar_number || prev.aadhaar,
-                pan: kycInfo.pan_number || prev.pan,
-                address: kycInfo.address || prev.address,
-                kyc_data: kycInfo || [],
-                is_kyc: true,
-              }));
+              // Apply KYC data with validation
+              applyKycData(kycData.data);
+            } else {
+              setKycCompleted(true);
+              toast.success("KYC verification completed successfully!");
             }
-
-            setKycCompleted(true);
-            toast.success("KYC verification completed successfully!");
 
             // Clean up URL
             window.history.replaceState({}, "", window.location.pathname);
@@ -363,21 +541,37 @@ export default function DoctorOnboarding() {
         } catch (error) {
           console.error("KYC data fetch error:", error);
           toast.error("Failed to fetch KYC data. Please try again.");
+          
+          // Restore form data from localStorage if KYC failed
+          if (isClient) {
+            const preKycData = localStorage.getItem('doctorOnboardingPreKycData');
+            if (preKycData) {
+              try {
+                const parsedPreKycData = JSON.parse(preKycData);
+                setFormData(parsedPreKycData);
+              } catch (parseError) {
+                console.error('Error parsing pre-KYC data:', parseError);
+              }
+            }
+          }
         } finally {
           setKycLoading(false);
           localStorage.removeItem("digilocker_client_token");
         }
       }
     };
-    window.addEventListener("popstate", handleKycCallback);
 
-    // Also check on mount
-    handleKycCallback();
+    if (isClient) {
+      window.addEventListener("popstate", handleKycCallback);
+      handleKycCallback();
+    }
 
     return () => {
-      window.removeEventListener("popstate", handleKycCallback);
+      if (isClient) {
+        window.removeEventListener("popstate", handleKycCallback);
+      }
     };
-  }, []);
+  }, [formData, isClient]);
 
   // Initialize time slots
   useEffect(() => {
@@ -394,9 +588,9 @@ export default function DoctorOnboarding() {
     }));
   }, []);
 
-  // Get geolocation
+  // Get geolocation (client only)
   useEffect(() => {
-    if (navigator.geolocation) {
+    if (isClient && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setFormData((prev) => ({
@@ -410,7 +604,7 @@ export default function DoctorOnboarding() {
         }
       );
     }
-  }, []);
+  }, [isClient]);
 
   // Initialize signature canvas
   const initializeCanvas = () => {
@@ -661,6 +855,7 @@ export default function DoctorOnboarding() {
           if (!dlRegex.test(formData.driving_license.replace(/\s/g, "")))
             newErrors.driving_license =
               "Please enter a valid Driving License number";
+
         }
 
         // Professional Indemnity Insurance validation
@@ -781,6 +976,8 @@ export default function DoctorOnboarding() {
       if (data.status) {
         toast.success("✅ Doctor onboarded successfully!");
         setLoading(false);
+        // Clear localStorage on successful submission
+        clearLocalStorage();
       } else {
         toast.error(`❌ ${data.message || "Failed to submit"}`);
         setLoading(false);
@@ -1996,6 +2193,116 @@ export default function DoctorOnboarding() {
           </form>
         </div>
       </div>
+
+      {/* KYC Mismatch Modal */}
+      <AnimatePresence>
+        {showKycMismatchModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl"
+            >
+              <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6">
+                <div className="flex items-center space-x-3">
+                  <AlertTriangle className="w-8 h-8" />
+                  <div>
+                    <h3 className="text-2xl font-bold">KYC Data Mismatch</h3>
+                    <p className="opacity-90">We found some discrepancies between your form data and KYC records</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 max-h-[60vh] overflow-y-auto">
+                <div className="mb-6">
+                  <p className="text-gray-700 mb-4">
+                    Your KYC verification was successful, but we found some differences between the information 
+                    you provided and the official records. Please review the mismatches below:
+                  </p>
+                  
+                  <div className="space-y-4">
+                    {kycMismatches.map((mismatch, index) => (
+                      <motion.div
+                        key={mismatch.field}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="border-2 border-orange-200 rounded-xl p-4 bg-orange-50"
+                      >
+                        <div className="flex items-center space-x-3 mb-3">
+                          <AlertTriangle className="w-5 h-5 text-orange-600" />
+                          <h4 className="font-semibold text-orange-800">{mismatch.label}</h4>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">
+                              Your Input
+                            </label>
+                            <div className="bg-white p-3 rounded-lg border border-gray-200">
+                              <span className="text-gray-700 font-medium">{mismatch.currentValue}</span>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">
+                              KYC Record
+                            </label>
+                            <div className="bg-white p-3 rounded-lg border border-gray-200">
+                              <span className="text-gray-700 font-medium">{mismatch.kycValue}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <p className="text-orange-700 text-xs mt-3 flex items-center">
+                          <Info className="w-3 h-3 mr-1" />
+                          {mismatch.type === 'aadhaar' 
+                            ? 'Last 4 digits comparison' 
+                            : 'Please ensure this matches your official documents'}
+                        </p>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                  <div className="flex items-start space-x-3">
+                    <Info className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <h5 className="font-semibold text-blue-800 mb-1">Recommendation</h5>
+                      <p className="text-blue-700 text-sm">
+                        For verification purposes, we recommend using the official KYC data. 
+                        However, you can choose to keep your existing information if you believe it's correct.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 px-6 py-4 flex flex-col sm:flex-row justify-between space-y-3 sm:space-y-0 sm:space-x-4">
+                <button
+                  onClick={() => handleKycMismatchDecision(false)}
+                  className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors font-semibold"
+                >
+                  Keep My Data
+                </button>
+                <button
+                  onClick={() => handleKycMismatchDecision(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-800 to-blue-800 text-white rounded-xl hover:shadow-lg transition-all font-semibold"
+                >
+                  Use KYC Data
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Enhanced Signature Modal */}
       <AnimatePresence>

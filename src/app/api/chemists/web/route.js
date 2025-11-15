@@ -22,6 +22,7 @@ export async function POST(req) {
     const mobile = formData.get("mobile");
     const whatsapp = formData.get("whatsapp");
     const registration_no = formData.get("registration_no");
+    
     const consent_terms = formData.get("consent_terms") === "true";
 
     if (!phone_number || !owner_name || !pharmacy_name || !registration_no) {
@@ -111,6 +112,7 @@ export async function POST(req) {
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
         gstin,
+        kyc_data: parseJSON(formData.get("kyc_data") || []),
         payout_mode,
         mobile,
         whatsapp,

@@ -48,6 +48,8 @@ export default function DoctorOnboarding() {
     // Clinic Details
     clinic_address: "",
     clinic_photos: [],
+    kyc_data: [],
+    is_kyc: false,
     clinic_lat: "",
     clinic_lng: "",
 
@@ -224,7 +226,6 @@ export default function DoctorOnboarding() {
     try {
       setKycLoading(true);
 
-      // Step 1: Get access token
       const myHeaders = new Headers();
       myHeaders.append("Content-Type", "application/json");
 
@@ -253,11 +254,9 @@ export default function DoctorOnboarding() {
       const clientToken = tokenData.client_token;
       const state = tokenData.state;
 
-      // Step 2: Get DigiLocker URL
       const urlHeaders = new Headers();
       urlHeaders.append("Content-Type", "application/json");
 
-      // Use current page URL as redirect URL or your specific thank you page
       const currentUrl = window.location.href;
       const redirectUrl = `${
         currentUrl.split("?")[0]
@@ -347,6 +346,8 @@ export default function DoctorOnboarding() {
                 aadhaar: kycInfo.aadhaar_number || prev.aadhaar,
                 pan: kycInfo.pan_number || prev.pan,
                 address: kycInfo.address || prev.address,
+                kyc_data: kycInfo || [],
+                is_kyc: true,
               }));
             }
 
@@ -634,6 +635,8 @@ export default function DoctorOnboarding() {
           newErrors.qualification = "At least one qualification is required";
         if (!formData.doctor_registration_no)
           newErrors.doctor_registration_no = "Registration number is required";
+        if (!formData.is_kyc)
+          newErrors.kyc_data = "KYC is required";
         break;
 
       case 3:
@@ -1163,8 +1166,8 @@ export default function DoctorOnboarding() {
                   </div>
                   <div className="md:col-span-2">
                     <div className="bg-gradient-to-r from-blue-50 to-blue-50 border-2 border-blue-200 rounded-xl p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
+                      <div className="flex items-center flex-wrap justify-between">
+                        <div className="flex items-center flex-wrap space-x-4">
                           <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                             <Shield className="w-6 h-6 text-blue-800" />
                           </div>
@@ -1228,6 +1231,12 @@ export default function DoctorOnboarding() {
                         </motion.div>
                       )}
                     </div>
+                    {errors.kyc_data && (
+                      <p className="text-red-500 text-sm mt-1 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        {errors.kyc_data}
+                      </p>
+                    )}
                   </div>
                 </div>
 

@@ -31,9 +31,13 @@ import {
   Receipt,
   CreditCard,
   QrCode,
+  Beaker,
+  Microscope,
+  TestTube,
+  Activity,
 } from "lucide-react";
 
-// Default form data structure for chemist
+// Default form data structure for lab
 const defaultFormData = {
   // Personal Information
   owner_name: "",
@@ -41,33 +45,36 @@ const defaultFormData = {
   phone: "",
   mobile: "",
   whatsapp: "",
+  contact_person: "",
   
-  // Pharmacy Information
-  pharmacy_name: "",
-  registration_no: "",
+  // Lab Information
+  lab_name: "",
+  license_number: "",
+  registration_number: "",
   address: "",
   latitude: "",
   longitude: "",
   
   // Business Details
-  gstin: "",
-  drug_license_no: "",
+  gst_number: "",
+  pan_number: "",
   years_experience: "",
+  general_turnaround: "",
+  accepts_home_collection: false,
+  opening_hours: { open: "09:00", close: "18:00" },
+  services: [],
   
   // KYC Data
   kyc_data: [],
   is_kyc: false,
   
   // Documents
-  drug_license_file: null,
-  pharmacist_certificate_file: null,
-  pan_aadhaar_file: null,
-  gstin_certificate_file: null,
-  cancelled_cheque_file: null,
-  store_photo_file: null,
-  consent_form_file: null,
-  declaration_form_file: null,
-  digital_signature_file: null,
+  pan_card_file: null,
+  aadhaar_card_file: null,
+  lab_license_file: null,
+  gst_certificate_file: null,
+  owner_photo_file: null,
+  signature_file: null,
   
   // Payment & Agreements
   payout_mode: "bank_transfer",
@@ -77,15 +84,13 @@ const defaultFormData = {
   bank_branch: "",
   
   // Agreements
-  bpl_service_agreement: false,
-  bpl_preferred_time: "",
   non_disclosure_agreement: false,
   terms_conditions_agreement: false,
   digital_consent: false,
   consent_terms: false,
 };
 
-export default function ChemistOnboarding() {
+export default function LabOnboarding() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState(defaultFormData);
   const [isClient, setIsClient] = useState(false);
@@ -103,8 +108,8 @@ export default function ChemistOnboarding() {
   const fileInputRefs = useRef({});
 
   const steps = [
-    { number: 1, title: "Personal Info", icon: User, color: "blue" },
-    { number: 2, title: "Pharmacy Details", icon: Store, color: "green" },
+    { number: 1, title: "Lab Info", icon: Beaker, color: "blue" },
+    { number: 2, title: "Location & Services", icon: MapPin, color: "green" },
     { number: 3, title: "Documents", icon: FileText, color: "orange" },
     { number: 4, title: "Bank & Agreements", icon: Shield, color: "purple" },
   ];
@@ -116,6 +121,15 @@ export default function ChemistOnboarding() {
     { value: "cheque", label: "Cheque", icon: FileText },
   ];
 
+  const turnaroundOptions = [
+    "Same day",
+    "24 hours",
+    "48 hours",
+    "3-5 days",
+    "1 week",
+    "2 weeks"
+  ];
+
   // Set isClient to true when component mounts on client
   useEffect(() => {
     setIsClient(true);
@@ -124,8 +138,8 @@ export default function ChemistOnboarding() {
   // Load form data from localStorage after component mounts on client
   useEffect(() => {
     if (isClient) {
-      const savedFormData = localStorage.getItem('chemistOnboardingFormData');
-      const savedCurrentStep = localStorage.getItem('chemistOnboardingCurrentStep');
+      const savedFormData = localStorage.getItem('labOnboardingFormData');
+      const savedCurrentStep = localStorage.getItem('labOnboardingCurrentStep');
       
       if (savedFormData) {
         try {
@@ -133,10 +147,12 @@ export default function ChemistOnboarding() {
           setFormData(prev => ({
             ...defaultFormData,
             ...parsedData,
+            services: parsedData.services || [],
+            opening_hours: parsedData.opening_hours || { open: "09:00", close: "18:00" }
           }));
         } catch (error) {
           console.error('Error parsing saved form data:', error);
-          localStorage.removeItem('chemistOnboardingFormData');
+          localStorage.removeItem('labOnboardingFormData');
         }
       }
       
@@ -149,22 +165,22 @@ export default function ChemistOnboarding() {
   // Save form data to localStorage whenever it changes
   useEffect(() => {
     if (isClient) {
-      localStorage.setItem('chemistOnboardingFormData', JSON.stringify(formData));
+      localStorage.setItem('labOnboardingFormData', JSON.stringify(formData));
     }
   }, [formData, isClient]);
 
   // Save current step to localStorage whenever it changes
   useEffect(() => {
     if (isClient) {
-      localStorage.setItem('chemistOnboardingCurrentStep', currentStep.toString());
+      localStorage.setItem('labOnboardingCurrentStep', currentStep.toString());
     }
   }, [currentStep, isClient]);
 
   // Clean up localStorage when form is successfully submitted
   const clearLocalStorage = () => {
     if (isClient) {
-      localStorage.removeItem('chemistOnboardingFormData');
-      localStorage.removeItem('chemistOnboardingCurrentStep');
+      localStorage.removeItem('labOnboardingFormData');
+      localStorage.removeItem('labOnboardingCurrentStep');
     }
   };
 
@@ -175,7 +191,7 @@ export default function ChemistOnboarding() {
       
       // Store current form data in localStorage before starting KYC process
       if (isClient) {
-        localStorage.setItem('chemistOnboardingPreKycData', JSON.stringify(formData));
+        localStorage.setItem('labOnboardingPreKycData', JSON.stringify(formData));
       }
 
       // Step 1: Get access token
@@ -314,7 +330,7 @@ export default function ChemistOnboarding() {
           
           // Restore form data from localStorage if KYC failed
           if (isClient) {
-            const preKycData = localStorage.getItem('chemistOnboardingPreKycData');
+            const preKycData = localStorage.getItem('labOnboardingPreKycData');
             if (preKycData) {
               try {
                 const parsedPreKycData = JSON.parse(preKycData);
@@ -327,7 +343,7 @@ export default function ChemistOnboarding() {
         } finally {
           setKycLoading(false);
           localStorage.removeItem("digilocker_client_token");
-          localStorage.removeItem('chemistOnboardingPreKycData');
+          localStorage.removeItem('labOnboardingPreKycData');
         }
       }
     };
@@ -482,13 +498,13 @@ export default function ChemistOnboarding() {
 
         const signature = canvas.toDataURL("image/png");
         setSignatureData(signature);
-        setFormData((prev) => ({ ...prev, digital_signature_file: signature }));
+        setFormData((prev) => ({ ...prev, signature_file: signature }));
       } else if (activeSignatureTab === "upload") {
         if (!signatureData) {
           toast.error("Please upload a signature image first");
           return;
         }
-        setFormData((prev) => ({ ...prev, digital_signature_file: signatureData }));
+        setFormData((prev) => ({ ...prev, signature_file: signatureData }));
       }
 
       setShowSignatureModal(false);
@@ -534,6 +550,41 @@ export default function ChemistOnboarding() {
     setFormData((prev) => ({ ...prev, [field]: null }));
   };
 
+  // Service management functions
+  const [newService, setNewService] = useState({ service_name: "", price: "" });
+
+  const addService = () => {
+    if (newService.service_name && newService.price) {
+      const updatedServices = [...formData.services, {
+        service_name: newService.service_name,
+        price: parseFloat(newService.price)
+      }];
+      setFormData(prev => ({
+        ...prev,
+        services: updatedServices
+      }));
+      setNewService({ service_name: "", price: "" });
+    }
+  };
+
+  const removeService = (index) => {
+    const updatedServices = formData.services.filter((_, i) => i !== index);
+    setFormData(prev => ({
+      ...prev,
+      services: updatedServices
+    }));
+  };
+
+  const handleOpeningHoursChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      opening_hours: {
+        ...prev.opening_hours,
+        [field]: value
+      }
+    }));
+  };
+
   // Get geolocation
   useEffect(() => {
     if (isClient && navigator.geolocation) {
@@ -557,6 +608,7 @@ export default function ChemistOnboarding() {
 
     switch (step) {
       case 1:
+        if (!formData.lab_name) newErrors.lab_name = "Lab name is required";
         if (!formData.owner_name) newErrors.owner_name = "Owner name is required";
         if (!formData.email) newErrors.email = "Email is required";
         else if (!/\S+@\S+\.\S+/.test(formData.email))
@@ -564,31 +616,34 @@ export default function ChemistOnboarding() {
         if (!formData.phone) newErrors.phone = "Phone is required";
         else if (!/^[6-9]\d{9}$/.test(formData.phone.replace(/\D/g, "")))
           newErrors.phone = "Please enter a valid 10-digit Indian phone number";
-        if (!formData.registration_no)
-          newErrors.registration_no = "Chemist registration number is required";
+        if (!formData.license_number)
+          newErrors.license_number = "Lab license number is required";
         if (!formData.is_kyc)
           newErrors.kyc = "KYC verification is required";
         break;
 
       case 2:
-        if (!formData.pharmacy_name) newErrors.pharmacy_name = "Pharmacy name is required";
         if (!formData.address) newErrors.address = "Address is required";
-        if (!formData.drug_license_no) newErrors.drug_license_no = "Drug license number is required";
+        if (!formData.general_turnaround) newErrors.general_turnaround = "Turnaround time is required";
+        if (formData.services.length === 0) newErrors.services = "At least one service is required";
         
         // Validate required documents for step 2
-        if (!formData.drug_license_file) newErrors.drug_license_file = "Drug license file is required";
-        if (!formData.pharmacist_certificate_file) newErrors.pharmacist_certificate_file = "Pharmacist certificate is required";
+        if (!formData.lab_license_file) newErrors.lab_license_file = "Lab license file is required";
         break;
 
       case 3:
-        // GSTIN validation
-        if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.gstin))
-          newErrors.gstin = "Please enter a valid GSTIN number";
+        // GST validation
+        if (formData.gst_number && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.gst_number))
+          newErrors.gst_number = "Please enter a valid GST number";
+
+        // PAN validation
+        if (formData.pan_number && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan_number))
+          newErrors.pan_number = "Please enter a valid PAN number";
 
         // Validate additional documents
-        if (!formData.pan_aadhaar_file) newErrors.pan_aadhaar_file = "PAN/Aadhaar document is required";
-        if (!formData.gstin_certificate_file && formData.gstin) newErrors.gstin_certificate_file = "GSTIN certificate is required";
-        if (!formData.store_photo_file) newErrors.store_photo_file = "Store photo is required";
+        if (!formData.pan_card_file) newErrors.pan_card_file = "PAN card is required";
+        if (!formData.aadhaar_card_file) newErrors.aadhaar_card_file = "Aadhaar card is required";
+        if (!formData.owner_photo_file) newErrors.owner_photo_file = "Owner photo is required";
         break;
 
       case 4:
@@ -601,8 +656,6 @@ export default function ChemistOnboarding() {
           if (!formData.bank_ifsc_code) newErrors.bank_ifsc_code = "IFSC code is required";
           else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.bank_ifsc_code))
             newErrors.bank_ifsc_code = "Please enter a valid IFSC code";
-
-          if (!formData.cancelled_cheque_file) newErrors.cancelled_cheque_file = "Cancelled cheque is required for bank transfer";
         }
 
         // Digital consent validation
@@ -659,13 +712,15 @@ export default function ChemistOnboarding() {
           fd.append(key, value);
         } else if (Array.isArray(value)) {
           fd.append(key, JSON.stringify(value));
+        } else if (typeof value === "object") {
+          fd.append(key, JSON.stringify(value));
         } else {
           fd.append(key, value);
         }
       });
 
       // Send to API
-      const res = await fetch("/api/chemists/web", {
+      const res = await fetch("/api/labs/onboard/web", {
         method: "POST",
         body: fd,
       });
@@ -674,7 +729,7 @@ export default function ChemistOnboarding() {
 
       toast.dismiss("loading");
       if (data.success) {
-        toast.success("✅ Chemist onboarded successfully!");
+        toast.success("✅ Lab onboarded successfully!");
         setLoading(false);
         clearLocalStorage();
         // Reset form
@@ -751,6 +806,58 @@ export default function ChemistOnboarding() {
     </div>
   );
 
+  const ServiceInput = () => (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder="Service name"
+          value={newService.service_name}
+          onChange={(e) => setNewService(prev => ({ ...prev, service_name: e.target.value }))}
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+        <input
+          type="number"
+          placeholder="Price"
+          value={newService.price}
+          onChange={(e) => setNewService(prev => ({ ...prev, price: e.target.value }))}
+          className="w-32 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+        <button
+          type="button"
+          onClick={addService}
+          className="px-4 py-2 bg-blue-800 text-white rounded-lg hover:bg-blue-700 transition-all duration-200"
+        >
+          Add
+        </button>
+      </div>
+      
+      <div className="space-y-2 max-h-40 overflow-y-auto">
+        {formData.services.map((service, index) => (
+          <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+            <div>
+              <span className="font-medium text-gray-900">{service.service_name}</span>
+              <span className="ml-2 text-green-600">₹{service.price}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => removeService(index)}
+              className="text-red-600 hover:text-red-800 transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        ))}
+      </div>
+      {errors.services && (
+        <p className="text-red-500 text-sm mt-1 flex items-center">
+          <AlertCircle className="w-4 h-4 mr-1" />
+          {errors.services}
+        </p>
+      )}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -761,9 +868,9 @@ export default function ChemistOnboarding() {
           className="text-center mb-8"
         >
           <div className="bg-gradient-to-r from-blue-800 to-blue-800 text-white rounded-2xl p-8 shadow-2xl">
-            <h1 className="text-4xl font-bold mb-4">Chemist Onboarding Form</h1>
+            <h1 className="text-4xl font-bold mb-4">Lab Onboarding Form</h1>
             <p className="text-xl opacity-90">
-              Join our network of pharmacy professionals
+              Join our network of diagnostic laboratories
             </p>
           </div>
         </motion.div>
@@ -816,7 +923,7 @@ export default function ChemistOnboarding() {
         {/* Form */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           <form onSubmit={handleSubmit}>
-            {/* Step 1: Personal Information */}
+            {/* Step 1: Lab Information */}
             {currentStep === 1 && (
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
@@ -825,17 +932,42 @@ export default function ChemistOnboarding() {
               >
                 <div className="flex items-center mb-8">
                   <div className="w-12 h-12 bg-blue-800 rounded-xl flex items-center justify-center mr-4 shadow-lg">
-                    <User className="w-6 h-6 text-white" />
+                    <Beaker className="w-6 h-6 text-white" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">
-                      Personal Information
+                      Lab Information
                     </h2>
-                    <p className="text-gray-600">Tell us about yourself</p>
+                    <p className="text-gray-600">Tell us about your lab</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Lab Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.lab_name}
+                      onChange={(e) =>
+                        handleInputChange("lab_name", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                        errors.lab_name
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="Enter lab name"
+                    />
+                    {errors.lab_name && (
+                      <p className="text-red-500 text-sm mt-1 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        {errors.lab_name}
+                      </p>
+                    )}
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Owner Name *
@@ -851,7 +983,7 @@ export default function ChemistOnboarding() {
                           ? "border-red-500"
                           : "border-gray-300"
                       }`}
-                      placeholder="Enter full name"
+                      placeholder="Enter owner name"
                     />
                     {errors.owner_name && (
                       <p className="text-red-500 text-sm mt-1 flex items-center">
@@ -874,7 +1006,7 @@ export default function ChemistOnboarding() {
                       className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
                         errors.email ? "border-red-500" : "border-gray-300"
                       }`}
-                      placeholder="name@example.com"
+                      placeholder="lab@example.com"
                     />
                     {errors.email && (
                       <p className="text-red-500 text-sm mt-1 flex items-center">
@@ -939,6 +1071,21 @@ export default function ChemistOnboarding() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Contact Person
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.contact_person}
+                      onChange={(e) =>
+                        handleInputChange("contact_person", e.target.value)
+                      }
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      placeholder="Contact person name"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Years of Experience
                     </label>
                     <select
@@ -959,25 +1106,25 @@ export default function ChemistOnboarding() {
 
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Chemist Registration No. *
+                      Lab License No. *
                     </label>
                     <input
                       type="text"
-                      value={formData.registration_no}
+                      value={formData.license_number}
                       onChange={(e) =>
-                        handleInputChange("registration_no", e.target.value)
+                        handleInputChange("license_number", e.target.value)
                       }
                       className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
-                        errors.registration_no
+                        errors.license_number
                           ? "border-red-500"
                           : "border-gray-300"
                       }`}
-                      placeholder="Registration number"
+                      placeholder="Lab license number"
                     />
-                    {errors.registration_no && (
+                    {errors.license_number && (
                       <p className="text-red-500 text-sm mt-1 flex items-center">
                         <AlertCircle className="w-4 h-4 mr-1" />
-                        {errors.registration_no}
+                        {errors.license_number}
                       </p>
                     )}
                   </div>
@@ -1072,7 +1219,7 @@ export default function ChemistOnboarding() {
               </motion.div>
             )}
 
-            {/* Step 2: Pharmacy Details */}
+            {/* Step 2: Location & Services */}
             {currentStep === 2 && (
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
@@ -1081,70 +1228,20 @@ export default function ChemistOnboarding() {
               >
                 <div className="flex items-center mb-8">
                   <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
-                    <Store className="w-6 h-6 text-white" />
+                    <MapPin className="w-6 h-6 text-white" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">
-                      Pharmacy Details
+                      Location & Services
                     </h2>
                     <p className="text-gray-600">
-                      Your pharmacy information and location
+                      Your lab location and service offerings
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Pharmacy Name *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.pharmacy_name}
-                        onChange={(e) =>
-                          handleInputChange("pharmacy_name", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
-                          errors.pharmacy_name
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
-                        placeholder="Enter pharmacy name"
-                      />
-                      {errors.pharmacy_name && (
-                        <p className="text-red-500 text-sm mt-1 flex items-center">
-                          <AlertCircle className="w-4 h-4 mr-1" />
-                          {errors.pharmacy_name}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Drug License No. *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.drug_license_no}
-                        onChange={(e) =>
-                          handleInputChange("drug_license_no", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
-                          errors.drug_license_no
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
-                        placeholder="Enter drug license number"
-                      />
-                      {errors.drug_license_no && (
-                        <p className="text-red-500 text-sm mt-1 flex items-center">
-                          <AlertCircle className="w-4 h-4 mr-1" />
-                          {errors.drug_license_no}
-                        </p>
-                      )}
-                    </div>
-
+                  <div className="grid grid-cols-1 gap-6">
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Address *
@@ -1158,7 +1255,7 @@ export default function ChemistOnboarding() {
                         className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
                           errors.address ? "border-red-500" : "border-gray-300"
                         }`}
-                        placeholder="Full pharmacy address with landmark"
+                        placeholder="Full lab address with landmark"
                       />
                       {errors.address && (
                         <p className="text-red-500 text-sm mt-1 flex items-center">
@@ -1168,91 +1265,134 @@ export default function ChemistOnboarding() {
                       )}
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        GSTIN Number
-                      </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Latitude
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.latitude}
+                          readOnly
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Longitude
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.longitude}
+                          readOnly
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Registration Number
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.registration_number}
+                          onChange={(e) =>
+                            handleInputChange("registration_number", e.target.value)
+                          }
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                          placeholder="Lab registration number"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          General Turnaround Time *
+                        </label>
+                        <select
+                          value={formData.general_turnaround}
+                          onChange={(e) =>
+                            handleInputChange("general_turnaround", e.target.value)
+                          }
+                          className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                            errors.general_turnaround ? "border-red-500" : "border-gray-300"
+                          }`}
+                        >
+                          <option value="">Select turnaround time</option>
+                          {turnaroundOptions.map(option => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
+                        {errors.general_turnaround && (
+                          <p className="text-red-500 text-sm mt-1 flex items-center">
+                            <AlertCircle className="w-4 h-4 mr-1" />
+                            {errors.general_turnaround}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3 p-4 border border-gray-300 rounded-lg">
                       <input
-                        type="text"
-                        value={formData.gstin}
+                        type="checkbox"
+                        id="home-collection"
+                        checked={formData.accepts_home_collection}
                         onChange={(e) =>
-                          handleInputChange("gstin", e.target.value)
+                          handleInputChange("accepts_home_collection", e.target.checked)
                         }
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
-                          errors.gstin ? "border-red-500" : "border-gray-300"
-                        }`}
-                        placeholder="07AABCU9603R1ZM"
+                        className="rounded border-gray-300 text-blue-800 focus:ring-blue-500"
                       />
-                      {errors.gstin && (
-                        <p className="text-red-500 text-sm mt-1 flex items-center">
-                          <AlertCircle className="w-4 h-4 mr-1" />
-                          {errors.gstin}
-                        </p>
-                      )}
+                      <label htmlFor="home-collection" className="text-sm font-medium text-gray-700">
+                        Accepts Home Collection
+                      </label>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Payout Mode
+                        Opening Hours
                       </label>
-                      <select
-                        value={formData.payout_mode}
-                        onChange={(e) =>
-                          handleInputChange("payout_mode", e.target.value)
-                        }
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      >
-                        {payoutModes.map((mode) => (
-                          <option key={mode.value} value={mode.value}>
-                            {mode.label}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Open Time</label>
+                          <input
+                            type="time"
+                            value={formData.opening_hours.open}
+                            onChange={(e) => handleOpeningHoursChange('open', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Close Time</label>
+                          <input
+                            type="time"
+                            value={formData.opening_hours.close}
+                            onChange={(e) => handleOpeningHoursChange('close', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                      </div>
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Latitude
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.latitude}
-                        readOnly
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Longitude
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.longitude}
-                        readOnly
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50"
-                      />
-                    </div>
+                  {/* Services Section */}
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                      Lab Services
+                    </h3>
+                    <ServiceInput />
                   </div>
 
                   {/* Required Documents for Step 2 */}
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-6">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">
                       Required Documents
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FileUploadBox
-                        field="drug_license_file"
-                        label="Drug License *"
-                        accept="image/*,.pdf"
-                        required={true}
-                      />
-                      <FileUploadBox
-                        field="pharmacist_certificate_file"
-                        label="Pharmacist Certificate *"
-                        accept="image/*,.pdf"
-                        required={true}
-                      />
-                    </div>
+                    <FileUploadBox
+                      field="lab_license_file"
+                      label="Lab License *"
+                      accept="image/*,.pdf"
+                      required={true}
+                    />
                   </div>
                 </div>
 
@@ -1292,7 +1432,7 @@ export default function ChemistOnboarding() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">
-                      Documents & Certificates
+                      Documents & Business Details
                     </h2>
                     <p className="text-gray-600">Upload required documents</p>
                   </div>
@@ -1300,41 +1440,77 @@ export default function ChemistOnboarding() {
 
                 <div className="space-y-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        GST Number
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.gst_number}
+                        onChange={(e) =>
+                          handleInputChange("gst_number", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                          errors.gst_number ? "border-red-500" : "border-gray-300"
+                        }`}
+                        placeholder="07AABCU9603R1ZM"
+                      />
+                      {errors.gst_number && (
+                        <p className="text-red-500 text-sm mt-1 flex items-center">
+                          <AlertCircle className="w-4 h-4 mr-1" />
+                          {errors.gst_number}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        PAN Number
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.pan_number}
+                        onChange={(e) =>
+                          handleInputChange("pan_number", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                          errors.pan_number ? "border-red-500" : "border-gray-300"
+                        }`}
+                        placeholder="ABCDE1234F"
+                      />
+                      {errors.pan_number && (
+                        <p className="text-red-500 text-sm mt-1 flex items-center">
+                          <AlertCircle className="w-4 h-4 mr-1" />
+                          {errors.pan_number}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FileUploadBox
-                      field="pan_aadhaar_file"
-                      label="PAN/Aadhaar Card *"
+                      field="pan_card_file"
+                      label="PAN Card *"
                       accept="image/*,.pdf"
                       required={true}
                     />
                     <FileUploadBox
-                      field="gstin_certificate_file"
-                      label="GSTIN Certificate"
+                      field="aadhaar_card_file"
+                      label="Aadhaar Card *"
+                      accept="image/*,.pdf"
+                      required={true}
+                    />
+                    <FileUploadBox
+                      field="gst_certificate_file"
+                      label="GST Certificate"
                       accept="image/*,.pdf"
                       required={false}
                     />
                     <FileUploadBox
-                      field="cancelled_cheque_file"
-                      label="Cancelled Cheque"
-                      accept="image/*,.pdf"
-                      required={false}
-                    />
-                    <FileUploadBox
-                      field="store_photo_file"
-                      label="Store Photo *"
+                      field="owner_photo_file"
+                      label="Owner Photo *"
                       accept="image/*"
                       required={true}
-                    />
-                    <FileUploadBox
-                      field="consent_form_file"
-                      label="Consent Form"
-                      accept="image/*,.pdf"
-                      required={false}
-                    />
-                    <FileUploadBox
-                      field="declaration_form_file"
-                      label="Declaration Form"
-                      accept="image/*,.pdf"
-                      required={false}
                     />
 
                     <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-blue-500 transition-colors">
@@ -1343,7 +1519,7 @@ export default function ChemistOnboarding() {
                       </label>
                       <div className="text-center">
                         <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                        {formData.digital_signature_file ? (
+                        {formData.signature_file ? (
                           <div className="bg-green-50 p-4 rounded-lg">
                             <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
                             <p className="text-green-700 font-medium">
@@ -1418,6 +1594,24 @@ export default function ChemistOnboarding() {
                       Bank Details
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Payout Mode
+                        </label>
+                        <select
+                          value={formData.payout_mode}
+                          onChange={(e) =>
+                            handleInputChange("payout_mode", e.target.value)
+                          }
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                        >
+                          {payoutModes.map((mode) => (
+                            <option key={mode.value} value={mode.value}>
+                              {mode.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Bank Account Number
@@ -1500,17 +1694,6 @@ export default function ChemistOnboarding() {
                         />
                       </div>
                     </div>
-
-                    {formData.payout_mode === "bank_transfer" && (
-                      <div className="mt-6">
-                        <FileUploadBox
-                          field="cancelled_cheque_file"
-                          label="Cancelled Cheque *"
-                          accept="image/*,.pdf"
-                          required={true}
-                        />
-                      </div>
-                    )}
                   </div>
 
                   {/* Agreements */}
@@ -1651,7 +1834,7 @@ export default function ChemistOnboarding() {
                             </span>
                             <p className="text-gray-600 mt-2">
                               I have read and accept the complete Terms & Conditions, 
-                              Privacy Policy, and all associated agreements for chemist onboarding.
+                              Privacy Policy, and all associated agreements for lab onboarding.
                             </p>
                             {errors.consent_terms && (
                               <p className="text-red-500 text-sm mt-2 flex items-center">
@@ -1876,10 +2059,10 @@ export default function ChemistOnboarding() {
                     </div>
                     <div>
                       <h3 className="text-3xl font-bold bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
-                        Pharmacy Compliance & Terms
+                        Lab Compliance & Terms
                       </h3>
                       <p className="text-blue-100 text-lg mt-1">
-                        MediConnect.fit Pharmacy Regulatory Compliance Framework
+                        MediConnect.fit Laboratory Regulatory Compliance Framework
                       </p>
                     </div>
                   </div>
@@ -1891,31 +2074,30 @@ export default function ChemistOnboarding() {
                 <div className="space-y-6 text-sm text-gray-700 dark:text-gray-300">
                   <div>
                     <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                      Pharmacy Compliance Requirements
+                      Laboratory Compliance Requirements
                     </h4>
                     <div className="space-y-3">
                       <p>
-                        <strong>1. Drug License Compliance</strong><br />
-                        All pharmacies must maintain valid drug licenses as per the 
-                        Drugs and Cosmetics Act, 1940 and Rules, 1945.
+                        <strong>1. Laboratory License Compliance</strong><br />
+                        All diagnostic labs must maintain valid licenses as per the 
+                        Clinical Establishments Act and relevant state regulations.
                       </p>
                       
                       <p>
-                        <strong>2. GST Registration</strong><br />
-                        Valid GSTIN registration is mandatory for all business transactions 
-                        and tax compliance.
+                        <strong>2. NABL Accreditation</strong><br />
+                        Compliance with National Accreditation Board for Testing and Calibration Laboratories standards.
                       </p>
                       
                       <p>
                         <strong>3. Data Protection</strong><br />
                         Adherence to Digital Personal Data Protection Act (DPDP), 2023 
-                        for patient and business data.
+                        for patient data and test results.
                       </p>
                       
                       <p>
-                        <strong>4. Pharmacy Practice Regulations</strong><br />
-                        Compliance with state pharmacy council regulations and 
-                        professional practice standards.
+                        <strong>4. Quality Control Standards</strong><br />
+                        Implementation of proper quality control measures and 
+                        maintenance of test accuracy standards.
                       </p>
                     </div>
                   </div>
