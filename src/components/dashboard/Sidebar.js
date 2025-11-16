@@ -16,7 +16,8 @@ import {
   LogOut,
   User,
   TestTube,
-  Microscope
+  Microscope,
+  Hospital
 } from "lucide-react";
 
 import { getLoggedInUser,logoutUser } from "@/lib/authHelpers";
@@ -66,6 +67,11 @@ export default function Sidebar({ open, mobileOpen, onToggle, onCloseMobile }) {
       name: "Labs", 
       icon: <Microscope size={22} />, 
       path: `/admin/labs`,
+    },
+    { 
+      name: "Hospitals", 
+      icon: <Hospital size={22} />, 
+      path: `/admin/hospitals`,
     },
     { 
       name: "Settings", 

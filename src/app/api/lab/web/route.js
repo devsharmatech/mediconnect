@@ -6,7 +6,6 @@ export async function OPTIONS() {
   return new Response("OK", { headers: corsHeaders });
 }
 
-/* ------------------------- 🟢 GET: List Labs ------------------------- */
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
@@ -18,7 +17,9 @@ export async function GET(req) {
 
     let query = supabase
       .from("lab_details")
-      .select("*, users!inner(id, phone_number, profile_picture, role)", { count: "exact" })
+      .select("*, users!inner(id, phone_number, profile_picture, role)", {
+        count: "exact",
+      })
       .eq("users.role", "lab")
       .range(offset, offset + limit - 1)
       .order("created_at", { ascending: false });
@@ -45,13 +46,17 @@ export async function GET(req) {
     );
   } catch (error) {
     console.error("GET Labs Error:", error);
-    return failure("Failed to fetch labs. " + error.message, "lab_list_failed", 500, {
-      headers: corsHeaders,
-    });
+    return failure(
+      "Failed to fetch labs. " + error.message,
+      "lab_list_failed",
+      500,
+      {
+        headers: corsHeaders,
+      }
+    );
   }
 }
 
-/* ------------------------- 🟢 POST: Create Lab ------------------------- */
 export async function POST(req) {
   let createdUserId = null;
   const uploadedFiles = [];
@@ -63,9 +68,14 @@ export async function POST(req) {
     const required = ["lab_name", "owner_name", "phone_number", "email"];
     for (const f of required) {
       if (!formData.get(f)) {
-        return failure(`Missing required field: ${f}`, "validation_error", 400, {
-          headers: corsHeaders,
-        });
+        return failure(
+          `Missing required field: ${f}`,
+          "validation_error",
+          400,
+          {
+            headers: corsHeaders,
+          }
+        );
       }
     }
 
@@ -110,20 +120,33 @@ export async function POST(req) {
         .upload(path, buffer, { contentType: file.type });
       if (error) throw new Error(`Failed to upload ${field}: ${error.message}`);
       uploadedFiles.push(path);
-      const { data } = supabase.storage.from("lab-documents").getPublicUrl(path);
+      const { data } = supabase.storage
+        .from("lab-documents")
+        .getPublicUrl(path);
       return data.publicUrl;
     }
 
     // Upload files
     const pan_card_url = await upload(formData.get("pan_card"), "pan_card");
-    const aadhaar_card_url = await upload(formData.get("aadhaar_card"), "aadhaar_card");
-    const lab_license_url = await upload(formData.get("lab_license"), "lab_license");
-    const gst_certificate_url = await upload(formData.get("gst_certificate"), "gst_certificate");
-    const owner_photo_url = await upload(formData.get("owner_photo"), "owner_photo");
+    const aadhaar_card_url = await upload(
+      formData.get("aadhaar_card"),
+      "aadhaar_card"
+    );
+    const lab_license_url = await upload(
+      formData.get("lab_license"),
+      "lab_license"
+    );
+    const gst_certificate_url = await upload(
+      formData.get("gst_certificate"),
+      "gst_certificate"
+    );
+    const owner_photo_url = await upload(
+      formData.get("owner_photo"),
+      "owner_photo"
+    );
     const signature_url = await upload(formData.get("signature"), "signature");
 
-    const json = (f) =>
-      formData.get(f) ? JSON.parse(formData.get(f)) : null;
+    const json = (f) => (formData.get(f) ? JSON.parse(formData.get(f)) : null);
 
     // Insert into lab_details
     const { data, error } = await supabase
@@ -146,7 +169,8 @@ export async function POST(req) {
           opening_hours: json("opening_hours"),
           kyc_data: parseJSON(formData.get("kyc_data") || []),
           services: json("services") || [],
-          accepts_home_collection: formData.get("accepts_home_collection") === "true",
+          accepts_home_collection:
+            formData.get("accepts_home_collection") === "true",
           general_turnaround: formData.get("general_turnaround"),
           onboarding_status: "pending",
           pan_card_url,
@@ -173,8 +197,13 @@ export async function POST(req) {
     if (uploadedFiles.length)
       await supabase.storage.from("lab-documents").remove(uploadedFiles);
 
-    return failure("Failed to create lab. " + error.message, "lab_creation_failed", 500, {
-      headers: corsHeaders,
-    });
+    return failure(
+      "Failed to create lab. " + error.message,
+      "lab_creation_failed",
+      500,
+      {
+        headers: corsHeaders,
+      }
+    );
   }
 }
