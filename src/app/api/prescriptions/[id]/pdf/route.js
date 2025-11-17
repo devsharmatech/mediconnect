@@ -197,7 +197,7 @@ function buildPrescriptionHtml(rec) {
   const aiSummary = rec.ai_analysis
     ? `
       <div class="ai-section">
-        <h3>AI Analysis Summary</h3>
+        <h3>Disease Analysis Summary</h3>
         <p><strong>Summary:</strong> ${rec.ai_analysis.summary || "N/A"}</p>
         <p><strong>Probable Diagnoses:</strong></p>
         <ul>
@@ -598,9 +598,6 @@ function buildPrescriptionHtml(rec) {
         ? `<div class="section"><h3>Clinical Notes</h3><p>${rec.special_message}</p></div>`
         : ""
     }
-
-    <!-- AI Analysis -->
-    ${aiSummary}
 
     <!-- Professional Footer -->
     <div class="footer">
