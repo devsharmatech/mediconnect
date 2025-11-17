@@ -15,6 +15,7 @@ import {
   Calendar,
   LogOut,
   User,
+  Shield,
   TestTube,
   Microscope,
   Hospital
@@ -72,6 +73,11 @@ export default function Sidebar({ open, mobileOpen, onToggle, onCloseMobile }) {
       name: "Hospitals", 
       icon: <Hospital size={22} />, 
       path: `/admin/hospitals`,
+    },
+    { 
+      name: "Insurance", 
+      icon: <Shield size={22} />, 
+      path: `/admin/insurance-partners`,
     },
     { 
       name: "Settings", 
