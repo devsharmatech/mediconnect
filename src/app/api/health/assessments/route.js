@@ -149,10 +149,13 @@ export async function POST(req) {
       assessment_type === "heart"
         ? "heart_health_inputs"
         : "lung_health_inputs";
+    const cleanInputs = { ...inputs };
+    delete cleanInputs.bmi;
+    delete cleanInputs.calculated_bmi;
     const { error: inputError } = await supabase.from(inputTable).insert([
       {
         assessment_id: assessment.id,
-        ...inputs,
+        ...cleanInputs,
         created_at: new Date().toISOString(),
       },
     ]);
@@ -204,11 +207,20 @@ function calculateHeartHealth(inputs) {
   const riskFactors = [];
 
   // BMI
-  const bmi = inputs.weight_kg / ((inputs.height_cm / 100) ** 2);
-  inputs.bmi = bmi;
+  const bmi =
+    inputs.height_cm && inputs.weight_kg
+      ? inputs.weight_kg / (inputs.height_cm / 100) ** 2
+      : null;
 
-  if (bmi >= 30) { score -= 15; riskFactors.push("Obesity"); }
-  else if (bmi >= 25) { score -= 10; riskFactors.push("Overweight"); }
+  inputs.bmi = bmi ? Number(bmi.toFixed(1)) : null;
+
+  if (bmi >= 30) {
+    score -= 15;
+    riskFactors.push("Obesity");
+  } else if (bmi >= 25) {
+    score -= 10;
+    riskFactors.push("Overweight");
+  }
 
   // Blood Pressure
   if (inputs.systolic_bp >= 140 || inputs.diastolic_bp >= 90) {
@@ -220,20 +232,37 @@ function calculateHeartHealth(inputs) {
   }
 
   // Cholesterol
-  if (inputs.ldl_cholesterol > 160) { score -= 15; riskFactors.push("High LDL"); }
-  else if (inputs.ldl_cholesterol > 130) { score -= 10; }
+  if (inputs.ldl_cholesterol > 160) {
+    score -= 15;
+    riskFactors.push("High LDL");
+  } else if (inputs.ldl_cholesterol > 130) {
+    score -= 10;
+  }
 
-  if (inputs.hdl_cholesterol < 40) { score -= 10; riskFactors.push("Low HDL"); }
+  if (inputs.hdl_cholesterol < 40) {
+    score -= 10;
+    riskFactors.push("Low HDL");
+  }
 
-  if (inputs.triglycerides > 200) { score -= 8; riskFactors.push("High Triglycerides"); }
+  if (inputs.triglycerides > 200) {
+    score -= 8;
+    riskFactors.push("High Triglycerides");
+  }
 
   // Blood Sugar
-  if (inputs.hba1c >= 6.5) { score -= 12; riskFactors.push("Diabetes"); }
-  else if (inputs.hba1c >= 5.7) { score -= 6; riskFactors.push("Prediabetes"); }
+  if (inputs.hba1c >= 6.5) {
+    score -= 12;
+    riskFactors.push("Diabetes");
+  } else if (inputs.hba1c >= 5.7) {
+    score -= 6;
+    riskFactors.push("Prediabetes");
+  }
 
   // Heart Rate
-  if (inputs.resting_heart_rate > 100) { score -= 12; riskFactors.push("Tachycardia"); }
-  else if (inputs.resting_heart_rate > 80) score -= 5;
+  if (inputs.resting_heart_rate > 100) {
+    score -= 12;
+    riskFactors.push("Tachycardia");
+  } else if (inputs.resting_heart_rate > 80) score -= 5;
 
   // Lifestyle
   if (inputs.smoking_status === "current") {
@@ -247,16 +276,23 @@ function calculateHeartHealth(inputs) {
   }
 
   // Symptoms
-  if (inputs.chest_pain) { score -= 25; riskFactors.push("Chest pain – urgent"); }
+  if (inputs.chest_pain) {
+    score -= 25;
+    riskFactors.push("Chest pain – urgent");
+  }
 
   score = Math.max(0, Math.min(100, score));
 
   const heartAge = inputs.age + Math.floor((100 - score) / 3);
 
   let riskLevel =
-    score >= 80 ? "low" :
-    score >= 60 ? "moderate" :
-    score >= 40 ? "high" : "critical";
+    score >= 80
+      ? "low"
+      : score >= 60
+      ? "moderate"
+      : score >= 40
+      ? "high"
+      : "critical";
 
   return {
     healthScore: Math.round(score),
