@@ -1,28 +1,6 @@
 import { NextResponse } from "next/server";
 import { openai, supabase } from "@/lib/supabaseAdmin";
 
-// Rate limiting storage (in production, use Redis)
-const requestCounts = new Map();
-
-function checkRateLimit(screeningId) {
-  const now = Date.now();
-  const windowStart = now - 60000; // 1 minute window
-  
-  if (!requestCounts.has(screeningId)) {
-    requestCounts.set(screeningId, []);
-  }
-  
-  const requests = requestCounts.get(screeningId).filter(time => time > windowStart);
-  requestCounts.set(screeningId, requests);
-  
-  if (requests.length >= 10) { // 10 requests per minute
-    return false;
-  }
-  
-  requests.push(now);
-  return true;
-}
-
 function safeJSONParse(str, fallback = {}) {
   try {
     return JSON.parse(str);
@@ -156,14 +134,6 @@ export async function POST(req) {
       return NextResponse.json(
         { status: false, message: "Please provide a valid response" },
         { status: 400 }
-      );
-    }
-
-    // Check rate limiting
-    if (!checkRateLimit(screening_id)) {
-      return NextResponse.json(
-        { status: false, message: "Too many requests. Please wait a moment." },
-        { status: 429 }
       );
     }
 
@@ -405,6 +375,7 @@ Important:
         answers,
         stage: stage + 1,
         updated_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
       })
       .eq("id", screening_id);
 
@@ -454,21 +425,3 @@ Important:
     );
   }
 }
-
-// Optional: Add cleanup function for rate limiting
-function cleanupRateLimit() {
-  const now = Date.now();
-  const windowStart = now - 60000; // 1 minute
-  
-  for (const [key, times] of requestCounts.entries()) {
-    const filtered = times.filter(time => time > windowStart);
-    if (filtered.length === 0) {
-      requestCounts.delete(key);
-    } else {
-      requestCounts.set(key, filtered);
-    }
-  }
-}
-
-// Clean up every 5 minutes
-setInterval(cleanupRateLimit, 300000);

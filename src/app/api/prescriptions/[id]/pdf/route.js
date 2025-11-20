@@ -55,43 +55,30 @@ export async function GET(req, { params }) {
 
     const html = buildPrescriptionHtml(rec);
 
-    const pdfResponse = await fetch("https://api.pdfshift.io/v3/convert/pdf", {
-      method: "POST",
-      headers: {
-        "X-API-Key": `${process.env.PDFSHIFT_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        source: html,
-        use_print: false,
-        landscape: false,
-        margin: { top: "10px", bottom: "10px", left: "10px", right: "10px" },
-      }),
-    });
+    const pdfResponse = await fetch(
+      "https://argosmob.uk/dhillon/public/api/v1/pdf/generate-pdf",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ html }),
+      }
+    );
 
     if (!pdfResponse.ok) {
       const errText = await pdfResponse.text();
       throw new Error(`PDF service error: ${pdfResponse.status} — ${errText}`);
     }
+    const pdfJson = await pdfResponse.json();
 
-    const pdfBuffer = await pdfResponse.arrayBuffer();
-
-    const timestamp = dayjs().format("YYYYMMDD_HHmmss");
-    await supabase.storage
-      .from("prescriptions")
-      .upload(`pdfs/${id}_${timestamp}.pdf`, new Blob([pdfBuffer]), {
-        contentType: "application/pdf",
-      });
-
-    const { data: publicUrlData } = supabase.storage
-      .from("prescriptions")
-      .getPublicUrl(`pdfs/${id}_${timestamp}.pdf`);
+    console.log("PDF API result:", pdfJson);
 
     return new Response(
       JSON.stringify({
         success: true,
         message: "Prescription PDF generated successfully.",
-        url: publicUrlData.publicUrl,
+        url: pdfJson.url || "", // ← FIXED
       }),
       {
         status: 200,

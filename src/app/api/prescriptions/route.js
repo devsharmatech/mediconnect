@@ -16,6 +16,7 @@ export async function POST(req) {
       medicines,
       lab_tests,
       special_message,
+      investigations,
       ai_analysis,
     } = body || {};
 
@@ -53,6 +54,7 @@ export async function POST(req) {
           medicines,
           lab_tests,
           special_message,
+          investigations,
           ai_analysis,
         },
       ])
