@@ -92,25 +92,6 @@ export async function GET(req, { params }) {
     });
   }
 }
-function renderDiseaseInfo(diseaseInfo) {
-  if (!diseaseInfo) return "Not specified";
-
-  let info = diseaseInfo;
-  if (typeof diseaseInfo === "string") {
-    try {
-      info = JSON.parse(diseaseInfo);
-    } catch {
-      return diseaseInfo; // fallback to raw string
-    }
-  }
-
-  // Format structured AI data
-  const parts = [];
-
-  return parts.length
-    ? `<div class="disease-info">${parts.join("")}</div>`
-    : "Not specified";
-}
 
 function buildPrescriptionHtml(rec) {
   const now = dayjs(rec.created_at).format("DD MMM YYYY, HH:mm");
@@ -141,6 +122,10 @@ function buildPrescriptionHtml(rec) {
 
   const labList = (rec.lab_tests || [])
     .map((t, i) => `<li>${i + 1}. ${t.name || "-"}</li>`)
+    .join("");
+
+  const investigationsList = (rec.investigations || [])
+    .map((inv, i) => `<li>${i + 1}. ${inv || "-"}</li>`)
     .join("");
 
   const aiSummary = rec.ai_analysis
@@ -175,7 +160,7 @@ function buildPrescriptionHtml(rec) {
       line-height: 1.4;
     }
     .page {
-      padding: 20mm 5mm 10mm 5mm;
+      padding: 10mm 5mm 5mm 5mm;
       position: relative;
       box-sizing: border-box;
     }
@@ -183,72 +168,92 @@ function buildPrescriptionHtml(rec) {
     /* Professional Header */
     .header {
       border-bottom: 3px double #2c5aa0;
-      padding-bottom: 15px;
-      margin-bottom: 15px;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
       position: relative;
     }
-    .header-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 15px;
+    
+    .header-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
     }
+    
+    .header-table td {
+      vertical-align: top;
+      padding: 0;
+      border: none;
+    }
+    
     .logo-section img { 
-      height: 65px; 
-      max-width: 200px;
+      height: 60px; 
+      max-width: 180px;
     }
+    
     .prescription-title {
       text-align: center;
-      flex-grow: 1;
     }
+    
     .prescription-title h1 {
       color: #2c5aa0;
       margin: 0;
-      font-size: 24px;
+      font-size: 22px;
       font-weight: bold;
       letter-spacing: 1px;
     }
+    
     .prescription-title .subtitle {
       color: #666;
-      font-size: 14px;
+      font-size: 12px;
       margin-top: 2px;
     }
+    
     .document-info {
       text-align: right;
-      font-size: 11px;
+      font-size: 10px;
       color: #666;
-      min-width: 120px;
+      width: 120px;
     }
     
     /* Clinic Info Section */
     .clinic-info-section {
-      display: flex;
-      justify-content: space-between;
+      width: 100%;
+      border-collapse: collapse;
       background: #f8f9fa;
-      padding: 12px 15px;
+      padding: 8px 12px;
       border-radius: 4px;
-      font-size: 12px;
+      font-size: 11px;
     }
+    
+    .clinic-info-section td {
+      border: none;
+      padding: 0;
+    }
+    
     .clinic-details {
-      flex: 2;
+      width: 70%;
     }
+    
     .clinic-details .clinic-name {
       font-weight: bold;
       color: #2c5aa0;
-      font-size: 16px;
-      margin-bottom: 4px;
+      font-size: 14px;
+      margin-bottom: 2px;
     }
+    
     .doctor-qualification {
-      font-size: 11px;
+      font-size: 10px;
       color: #666;
       font-style: italic;
     }
+    
     .consultation-info {
-      flex: 1;
+      width: 30%;
       text-align: right;
       border-left: 1px solid #ddd;
-      padding-left: 15px;
+      padding-left: 12px;
     }
+    
     .consultation-fee {
       font-weight: bold;
       color: #2c5aa0;
@@ -257,9 +262,9 @@ function buildPrescriptionHtml(rec) {
     /* Watermark */
     .watermark {
       position: absolute;
-      top: 35%;
+      top: 30%;
       left: 15%;
-      font-size: 70px;
+      font-size: 60px;
       color: rgba(44, 90, 160, 0.03);
       transform: rotate(-30deg);
       z-index: 0;
@@ -269,79 +274,92 @@ function buildPrescriptionHtml(rec) {
 
     /* Patient Info */
     .section {
-      margin-bottom: 20px;
+      margin-bottom: 12px;
       z-index: 2;
       position: relative;
       page-break-inside: avoid;
     }
+    
     .section h3 {
       border-bottom: 1px solid #2c5aa0;
-      padding-bottom: 6px;
+      padding-bottom: 4px;
       color: #2c5aa0;
-      font-size: 14px;
-      margin-bottom: 10px;
+      font-size: 13px;
+      margin-bottom: 8px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
-    /* Patient Details Grid */
-    .patient-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      font-size: 13px;
+    /* Patient Details Table */
+    .patient-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
     }
+    
+    .patient-table td {
+      padding: 2px 0;
+      vertical-align: top;
+      border: none;
+    }
+    
     .info-group {
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
+    
     .info-label {
       font-weight: bold;
       color: #555;
       display: inline-block;
-      min-width: 100px;
+      min-width: 90px;
     }
 
-    /* Tables */
-    table {
+    /* Medicine Tables */
+    .medicines-table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 10px;
-      font-size: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-top: 8px;
+      font-size: 11px;
     }
-    table th {
+    
+    .medicines-table th {
       background-color: #2c5aa0;
       color: white;
-      padding: 8px 10px;
+      padding: 6px 8px;
       text-align: left;
       font-weight: bold;
+      border: none;
     }
-    table td {
+    
+    .medicines-table td {
       border: 1px solid #ddd;
-      padding: 8px 10px;
+      padding: 6px 8px;
       vertical-align: top;
     }
-    table tr:nth-child(even) {
+    
+    .medicines-table tr:nth-child(even) {
       background-color: #f8f9fa;
     }
 
     /* Lists */
     ul {
-      margin: 8px 0;
-      padding-left: 20px;
+      margin: 6px 0;
+      padding-left: 18px;
     }
+    
     li {
-      margin-bottom: 4px;
-      font-size: 13px;
+      margin-bottom: 3px;
+      font-size: 12px;
     }
 
     /* AI Section */
     .ai-section {
       background: #f0f7ff;
-      padding: 12px 15px;
-      margin: 15px 0;
+      padding: 10px 12px;
+      margin: 12px 0;
       border-radius: 0 4px 4px 0;
     }
+    
     .ai-section h3 {
       color: #2c5aa0;
       margin-top: 0;
@@ -349,52 +367,70 @@ function buildPrescriptionHtml(rec) {
 
     /* Footer with Signature */
     .footer {
-      margin-top: 30px;
+      margin-top: 15px;
       border-top: 2px solid #2c5aa0;
-      padding-top: 15px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      font-size: 11px;
+      padding-top: 8px;
+    }
+    
+    .footer-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .footer-table td {
+      vertical-align: bottom;
+      padding: 0;
+      border: none;
+    }
+    
+    .footer-left {
+      width: 50%;
+      font-size: 9px;
       color: #555;
     }
-    .footer-left {
-      flex: 1;
-    }
+    
     .footer-right {
-      flex: 1;
+      width: 50%;
       text-align: right;
+      font-size: 9px;
     }
+    
     .signature-box {
       text-align: center;
-      margin-bottom: 10px;
-    }
-    .signature-box img {
-      height: 50px;
       margin-bottom: 5px;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 5px;
     }
+    
+    .signature-box img {
+      height: 35px;
+      margin-bottom: 2px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 2px;
+    }
+    
     .doctor-name {
       font-weight: bold;
       color: #2c5aa0;
-      font-size: 13px;
+      font-size: 10px;
     }
+    
     .doctor-specialization {
-      font-size: 11px;
+      font-size: 8px;
       color: #666;
     }
+    
     .prescription-id {
       font-family: monospace;
       background: #f5f5f5;
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-size: 10px;
+      padding: 1px 4px;
+      border-radius: 2px;
+      font-size: 8px;
     }
-
+.prescription-spc{
+font-size: 14px;
+}
     @media print {
       .page {
-        padding: 5mm 5mm 5mm 5mm;
+        padding: 5mm 5mm 3mm 5mm;
       }
     }
   </style>
@@ -405,114 +441,130 @@ function buildPrescriptionHtml(rec) {
     
     <!-- Professional Header -->
     <div class="header">
-      <div class="header-top">
-        <div class="logo-section">
-          <img src="${logoUrl}" alt="Mediconnect Logo" />
-        </div>
-        <div class="prescription-title">
-          <h1>MEDICAL PRESCRIPTION</h1>
-          <div class="subtitle">Confidential Medical Document</div>
-        </div>
-        <div class="document-info">
-          Document ID: <span class="prescription-id">${rec.id}</span><br/>
-          Generated: ${now}
-        </div>
-      </div>
+      <table class="header-table">
+        <tr>
+          <td style="width: 180px;">
+            <div class="logo-section">
+              <img src="${logoUrl}" alt="Mediconnect Logo" />
+            </div>
+          </td>
+          <td>
+            <div class="prescription-title">
+              <h1>MEDICAL PRESCRIPTION</h1>
+              <div class="subtitle">Confidential Medical Document</div>
+            </div>
+          </td>
+          <td style="width: 120px;">
+            <div class="document-info">
+              Prescription ID: <span class="prescription-id">${
+                rec.pid
+              }</span><br/>
+               ${now}
+            </div>
+          </td>
+        </tr>
+      </table>
       
-      <div class="clinic-info-section">
-        <div class="clinic-details">
-          <div class="clinic-name">${
-            rec.doctor_details?.clinic_name || "Medical Clinic"
-          }</div>
-          <div>${rec.doctor_details?.clinic_address || "Clinic Address"}</div>
-          <div class="doctor-qualification">
-            ${rec.doctor_details?.qualification || ""} | ${
+      <table class="clinic-info-section">
+        <tr>
+          <td class="clinic-details">
+            <div class="clinic-name">${
+              rec.doctor_details?.clinic_name || "Medical Clinic"
+            }</div>
+            <div>${rec.doctor_details?.clinic_address || "Clinic Address"}</div>
+            <div class="doctor-qualification">
+              ${rec.doctor_details?.qualification || ""} | ${
     rec.doctor_details?.specialization || "General Physician"
   }
-          </div>
-        </div>
-        <div class="consultation-info">
-          <div>Consultation Fee: <span class="consultation-fee">₹${
-            rec.doctor_details?.consultation_fee || 0
-          }</span></div>
-          <div>License: MED/${
-            rec.doctor_details?.license_number || "XXXXX"
-          }</div>
-        </div>
-      </div>
+            </div>
+          </td>
+          <td class="consultation-info">
+            <div>Consultation Fee: <span class="consultation-fee">Rs ${
+              rec.doctor_details?.consultation_fee || 0
+            }</span></div>
+            <div>License: MED/${
+              rec.doctor_details?.license_number || "XXXXX"
+            }</div>
+          </td>
+        </tr>
+      </table>
     </div>
 
     <!-- Patient Information -->
     <div class="section">
       <h3>Patient Information</h3>
-      <div class="patient-grid">
-        <div>
-          <div class="info-group">
-            <span class="info-label">Name:</span> ${
-              rec.patient_details?.full_name || "-"
-            }
-          </div>
-          <div class="info-group">
-            <span class="info-label">Gender:</span> ${
-              rec.patient_details?.gender || "-"
-            }
-          </div>
-          <div class="info-group">
-            <span class="info-label">Date of Birth:</span> ${
-              rec.patient_details?.date_of_birth
-                ? dayjs(rec.patient_details.date_of_birth).format("DD MMM YYYY")
-                : "-"
-            }
-          </div>
-        </div>
-        <div>
-          <div class="info-group">
-            <span class="info-label">Blood Group:</span> ${
-              rec.patient_details?.blood_group || "-"
-            }
-          </div>
-          <div class="info-group">
-            <span class="info-label">Contact:</span> ${
-              rec.patient_details?.email || "-"
-            }
-          </div>
-          <div class="info-group">
-            <span class="info-label">Address:</span> ${
-              rec.patient_details?.address || "-"
-            }
-          </div>
-        </div>
-      </div>
+      <table class="patient-table">
+        <tr>
+          <td style="width: 50%;">
+            <div class="info-group">
+              <span class="info-label">Name:</span> ${
+                rec.patient_details?.full_name || "-"
+              }
+            </div>
+            <div class="info-group">
+              <span class="info-label">Gender:</span> ${
+                rec.patient_details?.gender || "-"
+              }
+            </div>
+            <div class="info-group">
+              <span class="info-label">Date of Birth:</span> ${
+                rec.patient_details?.date_of_birth
+                  ? dayjs(rec.patient_details.date_of_birth).format(
+                      "DD MMM YYYY"
+                    )
+                  : "-"
+              }
+            </div>
+          </td>
+          <td style="width: 50%;">
+            <div class="info-group">
+              <span class="info-label">Blood Group:</span> ${
+                rec.patient_details?.blood_group || "-"
+              }
+            </div>
+            <div class="info-group">
+              <span class="info-label">Contact:</span> ${
+                rec.patient_details?.email || "-"
+              }
+            </div>
+            <div class="info-group">
+              <span class="info-label">Address:</span> ${
+                rec.patient_details?.address || "-"
+              }
+            </div>
+          </td>
+        </tr>
+      </table>
     </div>
 
     <!-- Appointment Details -->
     <div class="section">
       <h3>Consultation Details</h3>
-      <div class="patient-grid">
-        <div>
-          <div class="info-group">
-            <span class="info-label">Date:</span> ${appointmentDate}
-          </div>
-          <div class="info-group">
-            <span class="info-label">Time:</span> ${appointmentTime}
-          </div>
-        </div>
-        <div>
-          <div class="info-group">
-            <span class="info-label">Status:</span> ${
-              rec.appointments?.status || "-"
-            }
-          </div>
-          
-          </div>
-          </div>
-          </div>
-          
+      <table class="patient-table">
+        <tr>
+          <td style="width: 50%;">
+            <div class="info-group">
+              <span class="info-label">Date:</span> ${appointmentDate}
+            </div>
+            <div class="info-group">
+              <span class="info-label">Time:</span> ${appointmentTime}
+            </div>
+          </td>
+          <td style="width: 50%;">
+            <div class="info-group">
+              <span class="info-label">Status:</span> ${
+                rec.appointments?.status || "-"
+              }
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
 
     <!-- Prescribed Medicines -->
     <div class="section">
       <h3>Prescribed Medications</h3>
-      <table>
+      <table class="medicines-table">
         <thead>
           <tr>
             <th width="5%">#</th>
@@ -538,32 +590,46 @@ function buildPrescriptionHtml(rec) {
       }</ul>
     </div>
 
+    <!-- Investigations -->
+    <div class="section">
+      <h3>Recommended Investigations</h3>
+      <ul>${
+        investigationsList ||
+        "<li>No investigations recommended at this time</li>"
+      }</ul>
+    </div>
+
     <!-- Doctor's Notes -->
     ${
       rec.special_message
-        ? `<div class="section"><h3>Clinical Notes</h3><p>${rec.special_message}</p></div>`
+        ? `<div class="section"><h3>Clinical Notes</h3><p class="prescription-spc">${rec.special_message}</p></div>`
         : ""
     }
 
     <!-- Professional Footer -->
     <div class="footer">
-      <div class="footer-left">
-        <strong>Mediconnect Healthcare Services</strong><br/>
-        Electronic Prescription System<br/>
-        © ${new Date().getFullYear()} | Valid only with doctor's signature
-      </div>
-      <div class="footer-right">
-        <div class="signature-box">
-          <img src="${signatureUrl}" alt="Doctor's Signature" />
-          <div class="doctor-name">${rec.doctor_details?.full_name || ""}</div>
-          <div class="doctor-specialization">
-            ${rec.doctor_details?.specialization || "Medical Practitioner"}
-          </div>
-          <div>License No: MED/${
-            rec.doctor_details?.license_number || "XXXXX"
-          }</div>
-        </div>
-      </div>
+      <table class="footer-table">
+        <tr>
+          <td class="footer-left">
+            <strong>Mediconnect Healthcare Services</strong><br/>
+            © ${new Date().getFullYear()} | Valid only with doctor's signature
+          </td>
+          <td class="footer-right">
+            <div class="signature-box">
+              <img src="${signatureUrl}" alt="Doctor's Signature" />
+              <div class="doctor-name">${
+                rec.doctor_details?.full_name || ""
+              }</div>
+              <div class="doctor-specialization">
+                ${rec.doctor_details?.specialization || "Medical Practitioner"}
+              </div>
+              <div>License No: MED/${
+                rec.doctor_details?.license_number || "XXXXX"
+              }</div>
+            </div>
+          </td>
+        </tr>
+      </table>
     </div>
   </div>
   </body>
