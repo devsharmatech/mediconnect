@@ -20,10 +20,8 @@ export async function GET(req) {
     const offset = (page - 1) * limit;
 
     // Main query
-    let query = supabase
-      .from("appointments")
-      .select(
-        `
+    let query = supabase.from("appointments").select(
+      `
         *,
         patient:patient_id (
           id,
@@ -50,8 +48,8 @@ export async function GET(req) {
           )
         )
       `,
-        { count: "exact" }
-      );
+      { count: "exact" }
+    );
 
     // Filters
     if (status !== "all") {
@@ -65,18 +63,24 @@ export async function GET(req) {
     if (patient_id) query = query.eq("patient_id", patient_id);
 
     if (search) {
-      query = query.or(`
-        patient.patient_details.full_name.ilike.%${search}%,
-        patient.patient_details.email.ilike.%${search}%,
-        patient.phone_number.ilike.%${search}%,
-        doctor.doctor_details.full_name.ilike.%${search}%,
-        doctor.doctor_details.email.ilike.%${search}%,
-        doctor.phone_number.ilike.%${search}%
-      `);
+      query = query.or(
+        `
+    (patient->'patient_details'->>'full_name').ilike.%${search}%,
+    (patient->'patient_details'->>'email').ilike.%${search}%,
+    patient->>'phone_number'.ilike.%${search}%,
+    (doctor->'doctor_details'->>'full_name').ilike.%${search}%,
+    (doctor->'doctor_details'->>'email').ilike.%${search}%,
+    doctor->>'phone_number'.ilike.%${search}%
+    `
+      );
     }
 
     // Execute paginated query
-    const { data: appointments, error, count } = await query
+    const {
+      data: appointments,
+      error,
+      count,
+    } = await query
       .order("appointment_date", { ascending: false })
       .order("appointment_time", { ascending: false })
       .range(offset, offset + limit - 1);
