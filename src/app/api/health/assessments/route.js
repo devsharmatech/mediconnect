@@ -72,6 +72,7 @@ export async function GET(req) {
   }
 }
 
+
 // Create new health assessment with AI analysis
 export async function POST(req) {
   try {
