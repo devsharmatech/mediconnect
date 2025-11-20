@@ -48,56 +48,84 @@ function BplViewModal({ isOpen, onClose, request }) {
   ];
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/50">
-      <motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-3xl border border-gray-200 dark:border-gray-700 overflow-auto">
-        <div className="p-4 border-b dark:border-gray-700 flex items-center justify-between">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 backdrop-blur-sm bg-black/40">
+      <motion.div 
+        initial={{ scale: 0.95, opacity: 0 }} 
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ type: "spring", damping: 25 }}
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-3xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+      >
+        <div className="p-6 border-b dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">BPL Request Details</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Request ID: {request.id}</p>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">BPL Request Details</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Request ID: {request.id}</p>
           </div>
-          <button onClick={onClose} className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-            <X size={20} />
+          <button 
+            onClick={onClose} 
+            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 hover:scale-110"
+          >
+            <X size={22} />
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <InfoRow label="Name" value={request.name} />
-            <InfoRow label="DOB" value={formatDate(request.dob)} />
-            <InfoRow label="Gender" value={request.gender} />
-            <InfoRow label="Mobile" value={request.mobile} />
-            <InfoRow label="Aadhaar No" value={request.aadhaar_no} />
-            <InfoRow label="Ration Card No" value={request.ration_card_no} />
-            <InfoRow label="Household Size" value={String(request.household_size || "N/A")} />
-            <InfoRow label="Head of Household" value={request.head_of_household} />
-            <InfoRow label="Monthly Income" value={request.monthly_income ? `₹${request.monthly_income}` : "N/A"} />
-            <InfoRow label="Employment Status" value={request.employment_status} />
-            <InfoRow label="Government Benefits" value={request.government_benefits} />
-            <InfoRow label="Disability" value={request.disability ? "Yes" : "No"} />
-            <InfoRow label="Status" value={request.status} />
-            <InfoRow label="Submitted" value={formatDate(request.created_at)} />
+        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InfoRow icon={<User size={16} />} label="Name" value={request.name} />
+            <InfoRow icon={<Calendar size={16} />} label="DOB" value={formatDate(request.dob)} />
+            <InfoRow icon={<User size={16} />} label="Gender" value={request.gender} />
+            <InfoRow icon={<Phone size={16} />} label="Mobile" value={request.mobile} />
+            <InfoRow icon={<FileText size={16} />} label="Aadhaar No" value={request.aadhaar_no} />
+            <InfoRow icon={<FileText size={16} />} label="Ration Card No" value={request.ration_card_no} />
+            <InfoRow icon={<User size={16} />} label="Household Size" value={String(request.household_size || "N/A")} />
+            <InfoRow icon={<User size={16} />} label="Head of Household" value={request.head_of_household} />
+            <InfoRow icon={<FileText size={16} />} label="Monthly Income" value={request.monthly_income ? `₹${request.monthly_income}` : "N/A"} />
+            <InfoRow icon={<FileText size={16} />} label="Employment Status" value={request.employment_status} />
+            <InfoRow icon={<FileText size={16} />} label="Government Benefits" value={request.government_benefits} />
+            <InfoRow icon={<FileText size={16} />} label="Disability" value={request.disability ? "Yes" : "No"} />
+            <InfoRow icon={<CheckCircle size={16} />} label="Status" value={request.status} />
+            <InfoRow icon={<Calendar size={16} />} label="Submitted" value={formatDate(request.created_at)} />
           </div>
 
-          <div>
-            <h4 className="text-sm font-medium mb-2">Documents</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="border-t dark:border-gray-700 pt-6">
+            <h4 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+              <FileText size={18} />
+              Documents
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {docs.map((d) => (
-                <div key={d.label} className="p-3 border rounded-lg bg-white dark:bg-gray-800 flex items-center justify-between">
+                <div key={d.label} className="p-4 border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800/50 hover:bg-white dark:hover:bg-gray-800 transition-all duration-200 flex items-center justify-between group">
                   <div>
-                    <div className="text-sm font-medium">{d.label}</div>
-                    <div className="text-xs text-gray-500">{d.url ? "Uploaded" : "Pending"}</div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white">{d.label}</div>
+                    <div className={`text-xs ${d.url ? "text-green-600 dark:text-green-400" : "text-yellow-600 dark:text-yellow-400"}`}>
+                      {d.url ? "✓ Uploaded" : "⏳ Pending"}
+                    </div>
                   </div>
                   {d.url ? (
-                    <a href={d.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 font-medium">View</a>
-                  ) : null}
+                    <a 
+                      href={d.url} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="text-blue-600 hover:text-blue-800 font-medium px-3 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all duration-200 group-hover:scale-105"
+                    >
+                      View
+                    </a>
+                  ) : (
+                    <div className="px-3 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                      N/A
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="p-4 border-t dark:border-gray-700 flex justify-end gap-2">
-          <button onClick={onClose} className="px-6 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors">
+        <div className="p-6 border-t dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50">
+          <button 
+            onClick={onClose} 
+            className="px-8 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 font-semibold text-gray-700 dark:text-gray-300 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+          >
             Close
           </button>
         </div>
@@ -106,11 +134,16 @@ function BplViewModal({ isOpen, onClose, request }) {
   );
 }
 
-function InfoRow({ label, value }) {
+function InfoRow({ icon, label, value }) {
   return (
-    <div className="flex items-start gap-2">
-      <div className="text-xs text-gray-500 w-36">{label}</div>
-      <div className="text-sm text-gray-900 dark:text-white">{value || "N/A"}</div>
+    <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/30 hover:bg-white dark:hover:bg-gray-800 transition-all duration-200">
+      <div className="text-gray-500 dark:text-gray-400 mt-0.5">
+        {icon}
+      </div>
+      <div className="flex-1">
+        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</div>
+        <div className="text-sm font-semibold text-gray-900 dark:text-white mt-1">{value || "—"}</div>
+      </div>
     </div>
   );
 }
@@ -283,28 +316,30 @@ export default function BplRequestsPage() {
   return (
     <>
       <main className="flex-1 p-6">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6">
+          <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">BPL Requests</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Manage BPL requests — view, approve, reject, and delete.</p>
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                BPL Requests
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Manage BPL Requests</p>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-gray-600 transition-colors" size={18} />
                 <input 
                   placeholder="Search name, mobile, aadhaar..." 
                   value={searchTerm} 
                   onChange={(e) => setSearchTerm(e.target.value)} 
-                  className="pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg w-64 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-black dark:focus:ring-gray-500 focus:border-transparent transition-all" 
+                  className="pl-10 pr-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl w-64 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200" 
                 />
               </div>
 
               <select 
                 value={statusFilter} 
                 onChange={(e) => setStatusFilter(e.target.value)} 
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-black dark:focus:ring-gray-500 focus:border-transparent transition-all"
+                className="px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
               >
                 <option value="all">All status</option>
                 <option value="pending">Pending</option>
@@ -314,9 +349,9 @@ export default function BplRequestsPage() {
 
               <button 
                 onClick={() => fetchRequests(1)} 
-                className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
+                className="p-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-all duration-200 hover:scale-105 hover:shadow-md"
               >
-                <RefreshCw size={18} />
+                <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
               </button>
             </div>
           </div>
@@ -328,38 +363,42 @@ export default function BplRequestsPage() {
                 initial={{ opacity: 0, y: -10 }} 
                 animate={{ opacity: 1, y: 0 }} 
                 exit={{ opacity: 0, y: -10 }} 
-                className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-center justify-between"
+                className="mb-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-200 dark:border-yellow-800 rounded-xl flex items-center justify-between shadow-lg"
               >
                 <div className="flex items-center gap-3">
-                  <AlertTriangle className="text-yellow-600 dark:text-yellow-400" size={20} />
+                  <AlertTriangle className="text-yellow-600 dark:text-yellow-400" size={22} />
                   <div>
-                    <div className="text-sm font-medium text-yellow-800 dark:text-yellow-300">{selectedIds.length} requests selected</div>
+                    <div className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">{selectedIds.length} requests selected</div>
                     <div className="text-xs text-yellow-700 dark:text-yellow-400">You can perform bulk actions on selected requests</div>
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <button 
                     onClick={() => bulkUpdateStatus("approved")} 
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+                    className="px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-xl font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg flex items-center gap-2"
                   >
+                    <CheckCircle size={16} />
                     Approve Selected
                   </button>
                   <button 
                     onClick={() => bulkUpdateStatus("pending")} 
-                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+                    className="px-5 py-2.5 bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white rounded-xl font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg flex items-center gap-2"
                   >
+                    <RefreshCw size={16} />
                     Set Pending
                   </button>
                   <button 
                     onClick={() => bulkUpdateStatus("rejected")} 
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+                    className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg flex items-center gap-2"
                   >
+                    <XCircle size={16} />
                     Reject Selected
                   </button>
                   <button 
                     onClick={bulkDelete} 
-                    className="px-4 py-2 bg-gray-900 hover:bg-black text-white rounded-lg font-medium transition-colors shadow-sm"
+                    className="px-5 py-2.5 bg-gradient-to-r from-gray-900 to-black hover:from-black hover:to-gray-900 text-white rounded-xl font-semibold transition-all duration-200 hover:scale-105 hover:shadow-lg flex items-center gap-2"
                   >
+                    <Trash2 size={16} />
                     Delete Selected
                   </button>
                 </div>
@@ -368,71 +407,82 @@ export default function BplRequestsPage() {
           </AnimatePresence>
 
           {/* Table */}
-          <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="overflow-x-auto ">
             <table className="w-full text-left">
-              <thead className="bg-gray-50 dark:bg-gray-800 text-xs text-gray-700 dark:text-gray-300 uppercase">
+              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 text-sm text-gray-700 dark:text-gray-300 uppercase">
                 <tr>
-                  <th className="p-4">
+                  <th className="p-4 rounded-tl-xl">
                     <input 
                       type="checkbox" 
                       checked={selectedIds.length > 0 && selectedIds.length === requests.length} 
                       onChange={(e) => e.target.checked ? selectAllVisible() : clearSelection()} 
-                      className="rounded border-gray-300 text-black focus:ring-black"
+                      className="rounded-lg border-2 border-gray-300 text-blue-600 focus:ring-blue-500 focus:border-blue-500 transition-all"
                     />
                   </th>
-                  <th className="p-4 font-medium">Name</th>
-                  <th className="p-4 font-medium">Contact</th>
-                  <th className="p-4 font-medium">Aadhaar / Ration</th>
-                  <th className="p-4 font-medium">Household</th>
-                  <th className="p-4 font-medium">Status</th>
-                  <th className="p-4 font-medium text-right">Actions</th>
+                  <th className="p-4 font-semibold">Name</th>
+                  <th className="p-4 font-semibold">Contact</th>
+                  <th className="p-4 font-semibold">Aadhaar / Ration</th>
+                  <th className="p-4 font-semibold">Household</th>
+                  <th className="p-4 font-semibold">Status</th>
+                  <th className="p-4 font-semibold text-right rounded-tr-xl">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="divide-y-2 divide-gray-100 dark:divide-gray-700">
                 {loading ? (
                   <tr>
                     <td colSpan={7} className="p-8 text-center text-gray-500 dark:text-gray-400">
-                      <div className="flex justify-center">
-                        <RefreshCw className="animate-spin mr-2" size={18} />
-                        Loading requests...
+                      <div className="flex justify-center items-center gap-2">
+                        <RefreshCw className="animate-spin" size={20} />
+                        <span>Loading requests...</span>
                       </div>
                     </td>
                   </tr>
                 ) : requests.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="p-8 text-center text-gray-500 dark:text-gray-400">
-                      No requests found
+                      <div className="flex flex-col items-center gap-2">
+                        <FileText size={40} className="text-gray-300 dark:text-gray-600" />
+                        <span>No requests found</span>
+                      </div>
                     </td>
                   </tr>
                 ) : (
                   requests.map((r) => (
-                    <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 group">
                       <td className="p-4">
                         <input 
                           type="checkbox" 
                           checked={selectedIds.includes(r.id)} 
                           onChange={() => toggleSelect(r.id)} 
-                          className="rounded border-gray-300 text-black focus:ring-black"
+                          className="rounded-lg border-2 border-gray-300 text-blue-600 focus:ring-blue-500 focus:border-blue-500 transition-all"
                         />
                       </td>
                       <td className="p-4">
-                        <div className="font-medium text-gray-900 dark:text-white">{r.name || "—"}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">User: {r.user_id}</div>
+                        <div className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          {r.name || "—"}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">User: {r.user_id}</div>
                       </td>
                       <td className="p-4">
-                        <div className="text-sm text-gray-900 dark:text-white">{r.mobile || "—"}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{formatDate(r.dob)}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">{r.mobile || "—"}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{formatDate(r.dob)}</div>
                       </td>
                       <td className="p-4">
-                        <div className="text-sm text-gray-900 dark:text-white">{r.aadhaar_no || "—"}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{r.ration_card_no || "—"}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">{r.aadhaar_no || "—"}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{r.ration_card_no || "—"}</div>
                       </td>
                       <td className="p-4">
-                        <div className="text-sm text-gray-900 dark:text-white">Household: {r.household_size ?? "—"}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Head: {r.head_of_household || "—"}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">Household: {r.household_size ?? "—"}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Head: {r.head_of_household || "—"}</div>
                       </td>
                       <td className="p-4">
-                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${r.status === "approved" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" : r.status === "rejected" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"}`}>
+                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                          r.status === "approved" 
+                            ? "bg-gradient-to-r from-green-100 to-green-200 text-green-800 dark:from-green-900/40 dark:to-green-800/40 dark:text-green-300" 
+                            : r.status === "rejected" 
+                            ? "bg-gradient-to-r from-red-100 to-red-200 text-red-800 dark:from-red-900/40 dark:to-red-800/40 dark:text-red-300" 
+                            : "bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 dark:from-yellow-900/40 dark:to-yellow-800/40 dark:text-yellow-300"
+                        }`}>
                           {r.status === "approved" && <CheckCircle size={12} />}
                           {r.status === "rejected" && <XCircle size={12} />}
                           {r.status || "pending"}
@@ -441,7 +491,7 @@ export default function BplRequestsPage() {
                           <select 
                             value={r.status || "pending"} 
                             onChange={(e) => updateStatus(r.id, e.target.value)} 
-                            className="text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-1 focus:ring-black dark:focus:ring-gray-500 transition-all"
+                            className="text-sm px-3 py-1.5 border-2 border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                           >
                             {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
                           </select>
@@ -452,16 +502,16 @@ export default function BplRequestsPage() {
                           <button 
                             title="View Details" 
                             onClick={() => openView(r.id)} 
-                            className="p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            className="p-2.5 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all duration-200 hover:scale-110 hover:shadow-md"
                           >
-                            <Eye size={16} />
+                            <Eye size={18} />
                           </button>
                           <button 
                             title="Delete" 
                             onClick={() => toggleSelect(r.id)} 
-                            className="p-2 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
+                            className="p-2.5 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all duration-200 hover:scale-110 hover:shadow-md"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={18} />
                           </button>
                         </div>
                       </td>
@@ -473,17 +523,17 @@ export default function BplRequestsPage() {
           </div>
 
           {/* Pagination */}
-          <div className="mt-6 flex items-center justify-between">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="mt-8 flex items-center justify-between">
+            <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">
               Showing {(pagination.page - 1) * pagination.limit + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} requests
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Rows per page:</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Rows per page:</span>
                 <select 
                   value={pagination.limit} 
                   onChange={(e) => setPagination((p) => ({ ...p, limit: parseInt(e.target.value), page: 1 }))} 
-                  className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-1 focus:ring-black dark:focus:ring-gray-500 transition-all"
+                  className="px-3 py-1.5 border-2 border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                 >
                   <option value={5}>5</option>
                   <option value={10}>10</option>
@@ -492,39 +542,39 @@ export default function BplRequestsPage() {
                 </select>
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
                 <button 
                   onClick={() => handlePageChange(1)} 
                   disabled={pagination.page === 1} 
-                  className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 hover:shadow-md"
                 >
-                  <ChevronsLeft size={16} />
+                  <ChevronsLeft size={18} />
                 </button>
                 <button 
                   onClick={() => handlePageChange(pagination.page - 1)} 
                   disabled={pagination.page === 1} 
-                  className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 hover:shadow-md"
                 >
-                  <ChevronLeft size={16} />
+                  <ChevronLeft size={18} />
                 </button>
 
-                <div className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium">
+                <div className="px-4 py-2 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-semibold min-w-[100px] text-center">
                   {pagination.page} / {pagination.totalPages}
                 </div>
 
                 <button 
                   onClick={() => handlePageChange(pagination.page + 1)} 
                   disabled={pagination.page === pagination.totalPages} 
-                  className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 hover:shadow-md"
                 >
-                  <ChevronRight size={16} />
+                  <ChevronRight size={18} />
                 </button>
                 <button 
                   onClick={() => handlePageChange(pagination.totalPages)} 
                   disabled={pagination.page === pagination.totalPages} 
-                  className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 hover:shadow-md"
                 >
-                  <ChevronsRight size={16} />
+                  <ChevronsRight size={18} />
                 </button>
               </div>
             </div>
