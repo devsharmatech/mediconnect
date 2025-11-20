@@ -45,6 +45,11 @@ export default function Sidebar({ open, mobileOpen, onToggle, onCloseMobile }) {
       path: `/admin/patients`,
     },
     { 
+      name: "BPL Requests", 
+      icon: <Users size={22} />, 
+      path: `/admin/bpl-requests`,
+    },
+    { 
       name: "Doctors", 
       icon: <Stethoscope size={22} />, 
       path: `/admin/doctors`,

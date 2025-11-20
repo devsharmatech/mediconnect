@@ -395,8 +395,7 @@ export async function POST(request) {
       aadhaar_card_url,
       ration_card_url,
       income_certificate_url,
-      status: "pending",
-      submitted_at: new Date().toISOString(),
+      status: "pending"
     };
 
     // Insert into database
