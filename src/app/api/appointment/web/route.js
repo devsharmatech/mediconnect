@@ -63,15 +63,15 @@ export async function GET(req) {
     if (patient_id) query = query.eq("patient_id", patient_id);
 
     if (search) {
+      const s = `%${search}%`;
+
       query = query.or(
-        `
-    (patient->'patient_details'->>'full_name').ilike.%${search}%,
-    (patient->'patient_details'->>'email').ilike.%${search}%,
-    patient->>'phone_number'.ilike.%${search}%,
-    (doctor->'doctor_details'->>'full_name').ilike.%${search}%,
-    (doctor->'doctor_details'->>'email').ilike.%${search}%,
-    doctor->>'phone_number'.ilike.%${search}%
-    `
+        `patient->patient_details->>full_name.ilike.${s},` +
+          `patient->patient_details->>email.ilike.${s},` +
+          `patient->>phone_number.ilike.${s},` +
+          `doctor->doctor_details->>full_name.ilike.${s},` +
+          `doctor->doctor_details->>email.ilike.${s},` +
+          `doctor->>phone_number.ilike.${s}`
       );
     }
 

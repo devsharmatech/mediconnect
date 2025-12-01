@@ -374,8 +374,7 @@ Important:
         analysis: aiData,
         answers,
         stage: stage + 1,
-        updated_at: new Date().toISOString(),
-        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
       .eq("id", screening_id);
 
