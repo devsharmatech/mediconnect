@@ -79,17 +79,19 @@ export default function AdminLayout({ children }) {
         {children}
       </div>
 
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: "#1f2937",
-            color: "#fff",
-            backdropFilter: "blur(10px)",
-          },
-        }}
-      />
+      {!pathname.includes("/login") && (
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: "#1f2937",
+              color: "#fff",
+              backdropFilter: "blur(10px)",
+            },
+          }}
+        />
+      )}
     </div>
   );
 }

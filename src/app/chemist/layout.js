@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Sidebar from "@/components/dashboard/Sidebar";
-import Navbar from "@/components/dashboard/Navbar";
+import Sidebar from "@/components/chemist/Sidebar";
+import Navbar from "@/components/chemist/Navbar";
 import { Toaster } from "react-hot-toast";
 import { getLoggedInUser } from "@/lib/authHelpers";
 import { usePathname } from "next/navigation";
@@ -15,7 +15,7 @@ export default function AdminLayout({ children }) {
   const pathname = usePathname();
 
   const checkLogin = () => {
-    const user = getLoggedInUser("admin");
+    const user = getLoggedInUser("chemist");
     setIsLoggedIn(!!user);
   };
 
@@ -63,10 +63,10 @@ export default function AdminLayout({ children }) {
         />
       )}
 
-      {/* Main Content Area */}
+      {/* Main Content Area - Fixed the margin condition */}
       <div
         className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
-          sidebarOpen ? "lg:ml-64" : "lg:ml-16"
+          isLoggedIn ? (sidebarOpen ? "lg:ml-64" : "lg:ml-16") : ""
         }`}
       >
         {isLoggedIn && (
@@ -76,20 +76,22 @@ export default function AdminLayout({ children }) {
           />
         )}
 
-        {children}
+        <main className="flex-1 p-4 md:p-6">{children}</main>
       </div>
 
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: "#1f2937",
-            color: "#fff",
-            backdropFilter: "blur(10px)",
-          },
-        }}
-      />
+      {!pathname.includes("/login") && (
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: "#1f2937",
+              color: "#fff",
+              backdropFilter: "blur(10px)",
+            },
+          }}
+        />
+      )}
     </div>
   );
 }

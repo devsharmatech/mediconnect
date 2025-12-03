@@ -19,16 +19,13 @@ export async function GET(req) {
   try {
     const today = getTodaySlug();
     const currentTime = nowHHMM();
-
-    // STEP 1: get only APPROVED doctors
     const { data: doctors, error: doctorErr } = await supabase
       .from("doctor_details")
-      .select("*") // <-- FULL doctor info as you requested
+      .select("*") 
       .eq("onboarding_status", "approved");
 
     if (doctorErr) throw doctorErr;
-    // console.log("Total approved doctors:", doctors);
-    // STEP 2: Filter based on availability (today + between time)
+    
     const availableDoctors = (doctors || []).filter((doc) => {
       if (!doc.available_days || !doc.available_time) return false;
 

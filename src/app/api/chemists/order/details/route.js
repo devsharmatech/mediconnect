@@ -8,10 +8,10 @@ export async function OPTIONS() {
 
 export async function POST(req) {
   try {
-    const { chemist_id } = await req.json();
+    const { order_id } = await req.json();
 
-    if (!chemist_id) {
-      return failure("chemist_id required", null, 400, { headers: corsHeaders });
+    if (!order_id) {
+      return failure("order_id required", null, 400, { headers: corsHeaders });
     }
 
     const { data, error } = await supabase
@@ -19,16 +19,16 @@ export async function POST(req) {
       .select(`
         *,
         medicine_order_items(*),
-        patient:patient_id(full_name, phone_number),
+        patient:patient_id(full_name, phone_number, address),
         prescription:prescription_id(medicines, special_message)
       `)
-      .eq("chemist_id", chemist_id)
-      .order("created_at", { ascending: false });
+      .eq("id", order_id)
+      .maybeSingle();
 
     if (error) throw error;
 
-    return success("Chemist orders fetched", data, 200, { headers: corsHeaders });
+    return success("Order details fetched", data, 200, { headers: corsHeaders });
   } catch (err) {
-    return failure("Error fetching orders", err.message, 500, { headers: corsHeaders });
+    return failure("Error fetching order details", err.message, 500, { headers: corsHeaders });
   }
 }
