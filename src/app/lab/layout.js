@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Sidebar from "@/components/dashboard/Sidebar";
-import Navbar from "@/components/dashboard/Navbar";
+import Sidebar from "@/components/lab/Sidebar";
+import Navbar from "@/components/lab/Navbar";
 import { Toaster } from "react-hot-toast";
 import { getLoggedInUser } from "@/lib/authHelpers";
 import { usePathname } from "next/navigation";
@@ -41,13 +41,14 @@ export default function LabLayout({ children }) {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-gray-800 rounded-full animate-pulse"></div>
-          <div className="text-gray-800 font-bold text-xl">Mediconnect</div>
+          <div className="text-gray-800 font-bold text-xl">Loading...</div>
         </div>
       </div>
     );
   }
 
-  if (pathname === "/admin/login") {
+  // Check for both login routes - lab
+  if (pathname === "/lab/login") {
     return <>{children}</>;
   }
 
@@ -66,7 +67,7 @@ export default function LabLayout({ children }) {
       {/* Main Content Area */}
       <div
         className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
-          sidebarOpen ? "lg:ml-64" : "lg:ml-16"
+          isLoggedIn ? (sidebarOpen ? "lg:ml-64" : "lg:ml-16") : ""
         }`}
       >
         {isLoggedIn && (
@@ -76,20 +77,11 @@ export default function LabLayout({ children }) {
           />
         )}
 
-        {children}
+        <main className="flex-1 p-4 md:p-6 overflow-x-auto">
+          {children}
+        </main>
       </div>
 
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: "#1f2937",
-            color: "#fff",
-            backdropFilter: "blur(10px)",
-          },
-        }}
-      />
     </div>
   );
 }

@@ -19,8 +19,42 @@ export async function POST(req) {
       .select(`
         *,
         medicine_order_items(*),
-        patient:patient_id(full_name, phone_number, address),
-        prescription:prescription_id(medicines, special_message)
+
+        patient:patient_id(
+          phone_number,
+          patient_details (
+            full_name,
+            gender,
+            date_of_birth,
+            address
+          )
+        ),
+
+        prescription:prescription_id(
+          id,
+          medicines,
+          lab_tests,
+          investigations,
+          special_message,
+          created_at,
+
+          doctor:doctor_id(
+            full_name,
+            specialization,
+            qualification,
+            clinic_name,
+            clinic_address,
+            signature_url
+          ),
+
+          appointment:appointment_id(
+            id,
+            appointment_date,
+            appointment_time,
+            status,
+            disease_info
+          )
+        )
       `)
       .eq("id", order_id)
       .maybeSingle();
@@ -28,6 +62,7 @@ export async function POST(req) {
     if (error) throw error;
 
     return success("Order details fetched", data, 200, { headers: corsHeaders });
+
   } catch (err) {
     return failure("Error fetching order details", err.message, 500, { headers: corsHeaders });
   }

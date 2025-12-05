@@ -7,7 +7,7 @@ import { Toaster } from "react-hot-toast";
 import { getLoggedInUser } from "@/lib/authHelpers";
 import { usePathname } from "next/navigation";
 
-export default function AdminLayout({ children }) {
+export default function ChemistLayout({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
