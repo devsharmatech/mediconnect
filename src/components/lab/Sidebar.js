@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { 
-  Home, 
-  ClipboardList, 
+import {
+  Home,
+  ClipboardList,
   Beaker,
   FlaskRound,
   FileText,
   User,
   Settings,
-  Menu, 
+  Menu,
   X,
   LogOut,
   Microscope,
@@ -20,15 +20,20 @@ import {
   Users,
   Package,
   Shield,
-  Calendar
+  Calendar,
 } from "lucide-react";
 import { getLoggedInUser, logoutUser } from "@/lib/authHelpers";
 
-export default function LabSidebar({ open, mobileOpen, onToggle, onCloseMobile }) {
+export default function LabSidebar({
+  open,
+  mobileOpen,
+  onToggle,
+  onCloseMobile,
+}) {
   const [labName, setLabName] = useState("");
   const [labStats, setLabStats] = useState({
     todayOrders: 0,
-    activeTests: 0
+    activeTests: 0,
   });
   const pathname = usePathname();
   const router = useRouter();
@@ -38,26 +43,26 @@ export default function LabSidebar({ open, mobileOpen, onToggle, onCloseMobile }
       const user = getLoggedInUser("lab");
       if (user) {
         setLabName(user.lab_name || user.owner_name || "Lab Admin");
-        
+
         // Fetch today's stats
         try {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
-          
-          const response = await fetch('/api/lab/dashboard', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
+
+          const response = await fetch("/api/lab/dashboard", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
               lab_id: user.id,
-              start_date: today.toISOString()
-            })
+              start_date: today.toISOString(),
+            }),
           });
-          
+
           const result = await response.json();
           if (result.success) {
             setLabStats({
               todayOrders: result.data.stats?.total_orders || 0,
-              activeTests: result.data.stats?.active_services || 0
+              activeTests: result.data.stats?.active_services || 0,
             });
           }
         } catch (error) {
@@ -80,31 +85,31 @@ export default function LabSidebar({ open, mobileOpen, onToggle, onCloseMobile }
       icon: <ClipboardList size={22} />,
       path: `/lab/orders`,
     },
-    {
-      name: "Lab Tests",
-      icon: <Beaker size={22} />,
-      path: `/lab/tests`,
-    },
-    {
-      name: "Reports",
-      icon: <FileText size={22} />,
-      path: `/lab/reports`,
-    },
-    {
-      name: "Patients",
-      icon: <Users size={22} />,
-      path: `/lab/patients`,
-    },
+    // {
+    //   name: "Lab Tests",
+    //   icon: <Beaker size={22} />,
+    //   path: `/lab/tests`,
+    // },
+    // {
+    //   name: "Reports",
+    //   icon: <FileText size={22} />,
+    //   path: `/lab/reports`,
+    // },
+    // {
+    //   name: "Patients",
+    //   icon: <Users size={22} />,
+    //   path: `/lab/patients`,
+    // },
     {
       name: "Profile",
       icon: <User size={22} />,
       path: `/lab/profile`,
     },
-    {
-      name: "Settings",
-      icon: <Settings size={22} />,
-      path: `/lab/settings`,
-    },
+    // {
+    //   name: "Settings",
+    //   icon: <Settings size={22} />,
+    //   path: `/lab/settings`,
+    // },
   ];
 
   const handleLogout = () => {
@@ -120,10 +125,10 @@ export default function LabSidebar({ open, mobileOpen, onToggle, onCloseMobile }
   return (
     <>
       {mobileOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 z-40 lg:hidden cursor-pointer transition-opacity duration-300"
           onClick={onCloseMobile}
-          style={{ pointerEvents: 'auto' }}
+          style={{ pointerEvents: "auto" }}
         />
       )}
       <aside
@@ -137,20 +142,23 @@ export default function LabSidebar({ open, mobileOpen, onToggle, onCloseMobile }
           shadow-2xl lg:shadow-lg shadow-blue-200/50 dark:shadow-gray-900
           overflow-hidden
         `}
-        style={{ pointerEvents: 'auto' }} 
+        style={{ pointerEvents: "auto" }}
       >
-        
         {/* Header */}
         <div className="flex items-center justify-between p-4 py-6 border-b border-blue-200 dark:border-gray-700 flex-shrink-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
-          <div className={`flex items-center space-x-3 transition-all duration-300 ${!open && "hidden w-0"}`}>
+          <div
+            className={`flex items-center space-x-3 transition-all duration-300 ${
+              !open && "hidden w-0"
+            }`}
+          >
             <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
               <Microscope className="w-6 h-6 text-white" />
             </div>
             <div className="flex flex-col min-w-0">
-              <h2 className="text-lg font-bold text-blue-700 dark:text-blue-700 truncate">
+              <h2 className="text-lg font-bold text-blue-700 dark:text-blue-500 truncate">
                 Lab Portal
               </h2>
-              <p className="text-xs text-blue-600 dark:text-blue-700 truncate">
+              <p className="text-xs text-blue-600 dark:text-blue-500 truncate">
                 Diagnostic Center
               </p>
             </div>
@@ -181,12 +189,18 @@ export default function LabSidebar({ open, mobileOpen, onToggle, onCloseMobile }
                       : "text-gray-700 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-700 dark:hover:text-blue-300"
                   }
                 `}
-                style={{ pointerEvents: 'auto' }}
+                style={{ pointerEvents: "auto" }}
               >
-                <div className={`${pathname === item.path ? "scale-110 text-white" : "text-blue-600 dark:text-blue-700"} transition-transform duration-200 flex-shrink-0`}>
+                <div
+                  className={`${
+                    pathname === item.path
+                      ? "scale-110 text-white"
+                      : "text-blue-600 dark:text-blue-700"
+                  } transition-transform duration-200 flex-shrink-0`}
+                >
                   {item.icon}
                 </div>
-                
+
                 {open && (
                   <span className="ml-3 font-medium text-sm truncate flex-1 text-left">
                     {item.name}
@@ -197,21 +211,21 @@ export default function LabSidebar({ open, mobileOpen, onToggle, onCloseMobile }
                 {!open && pathname === item.path && (
                   <div className="absolute right-2 top-1/2 transform -translate-y-1/2 w-2 h-2 bg-white rounded-full shadow-md"></div>
                 )}
-                
+
                 {/* Hover effect for expanded */}
                 {open && pathname !== item.path && (
                   <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-4 bg-blue-700 rounded-r-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                 )}
               </button>
             ))}
-            
+
             {/* Additional Quick Actions Section */}
             {open && (
               <div className="pt-6 mt-4 border-t border-blue-200 dark:border-gray-700 hidden">
                 <p className="px-3 mb-2 text-xs font-semibold text-blue-600 dark:text-blue-700 uppercase tracking-wider">
                   Quick Actions
                 </p>
-                <button 
+                <button
                   onClick={() => handleNavigation("/lab/orders/new")}
                   className="group flex items-center w-full p-3 rounded-xl text-gray-700 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200"
                 >
@@ -223,7 +237,7 @@ export default function LabSidebar({ open, mobileOpen, onToggle, onCloseMobile }
                     New
                   </div>
                 </button>
-                <button 
+                <button
                   onClick={() => handleNavigation("/lab/reports/generate")}
                   className="group flex items-center w-full p-3 rounded-xl text-gray-700 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200"
                 >
@@ -242,12 +256,13 @@ export default function LabSidebar({ open, mobileOpen, onToggle, onCloseMobile }
 
         {/* User Profile & Logout Section */}
         <div className="p-3 border-t border-blue-200 dark:border-gray-700 space-y-2 flex-shrink-0 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
-          
           {/* User Profile */}
-          <div className={`
+          <div
+            className={`
             flex items-center p-3 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100 dark:from-gray-800 dark:to-gray-900
             transition-all duration-300 ${!open && "justify-center"}
-          `}>
+          `}
+          >
             <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center shadow-md flex-shrink-0 ring-2 ring-white dark:ring-gray-800">
               <FlaskRound className="w-5 h-5 text-white" />
             </div>
@@ -265,7 +280,7 @@ export default function LabSidebar({ open, mobileOpen, onToggle, onCloseMobile }
               </div>
             )}
           </div>
-          
+
           {/* Logout Button */}
           <button
             onClick={handleLogout}
@@ -277,7 +292,7 @@ export default function LabSidebar({ open, mobileOpen, onToggle, onCloseMobile }
               hover:shadow-md transition-all duration-200 cursor-pointer
               ${open ? "justify-start" : "justify-center"}
             `}
-            style={{ pointerEvents: 'auto' }} 
+            style={{ pointerEvents: "auto" }}
           >
             <LogOut size={20} className="flex-shrink-0" />
             {open && (
@@ -289,7 +304,7 @@ export default function LabSidebar({ open, mobileOpen, onToggle, onCloseMobile }
               </>
             )}
           </button>
-          
+
           {/* Stats Footer - Only shown when expanded */}
           {open && (
             <div className="pt-3 mt-2 border-t border-blue-200 dark:border-gray-700 hidden">
@@ -298,15 +313,23 @@ export default function LabSidebar({ open, mobileOpen, onToggle, onCloseMobile }
                   <div className="flex items-center justify-center mb-1">
                     <Calendar className="w-3 h-3 text-blue-600 dark:text-blue-700" />
                   </div>
-                  <p className="text-xs text-blue-700 dark:text-blue-700">Today's Orders</p>
-                  <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{labStats.todayOrders}</p>
+                  <p className="text-xs text-blue-700 dark:text-blue-700">
+                    Today's Orders
+                  </p>
+                  <p className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                    {labStats.todayOrders}
+                  </p>
                 </div>
                 <div className="text-center p-2 bg-blue-100 dark:bg-gray-800 rounded-lg">
                   <div className="flex items-center justify-center mb-1">
                     <Shield className="w-3 h-3 text-blue-600 dark:text-blue-700" />
                   </div>
-                  <p className="text-xs text-blue-700 dark:text-blue-700">Active Tests</p>
-                  <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{labStats.activeTests}</p>
+                  <p className="text-xs text-blue-700 dark:text-blue-700">
+                    Active Tests
+                  </p>
+                  <p className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                    {labStats.activeTests}
+                  </p>
                 </div>
               </div>
             </div>

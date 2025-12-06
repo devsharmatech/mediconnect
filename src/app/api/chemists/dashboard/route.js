@@ -8,10 +8,10 @@ export async function OPTIONS() {
 
 export async function POST(req) {
   try {
-    const { lab_id, time_range = "30d" } = await req.json();
+    const { chemist_id, time_range = "30d" } = await req.json();
 
-    if (!lab_id) {
-      return failure("lab_id required", null, 400, { headers: corsHeaders });
+    if (!chemist_id) {
+      return failure("chemist_id required", null, 400, { headers: corsHeaders });
     }
 
     // Calculate date ranges
@@ -38,27 +38,27 @@ export async function POST(req) {
     startDate.setHours(0, 0, 0, 0);
     endDate.setHours(23, 59, 59, 999);
 
-    // 1. Get Lab Info
-    const { data: labData, error: labError } = await supabase
-      .from("lab_details")
+    // 1. Get Chemist Info
+    const { data: chemistData, error: chemistError } = await supabase
+      .from("chemist_details")
       .select("*")
-      .eq("id", lab_id)
+      .eq("id", chemist_id)
       .single();
 
-    if (labError) throw labError;
+    if (chemistError) throw chemistError;
 
     // 2. Get User Info for profile picture
     const { data: userData } = await supabase
       .from("users")
       .select("profile_picture")
-      .eq("id", lab_id)
+      .eq("id", chemist_id)
       .single();
 
     // 3. Get Total Orders Count
     const { count: totalOrders, error: totalError } = await supabase
-      .from("lab_test_orders")
+      .from("medicine_orders")
       .select("*", { count: 'exact', head: true })
-      .eq("lab_id", lab_id)
+      .eq("chemist_id", chemist_id)
       .gte("created_at", startDate.toISOString())
       .lte("created_at", endDate.toISOString());
 
@@ -66,21 +66,21 @@ export async function POST(req) {
 
     // 4. Get Orders by Status
     const { data: ordersByStatus } = await supabase
-      .from("lab_test_orders")
+      .from("medicine_orders")
       .select("status")
-      .eq("lab_id", lab_id)
+      .eq("chemist_id", chemist_id)
       .gte("created_at", startDate.toISOString())
       .lte("created_at", endDate.toISOString());
 
     // Calculate status counts
     const statusCounts = {
       pending: 0,
-      sent_to_lab: 0,
+      sent_to_chemist: 0,
       approved: 0,
       partially_approved: 0,
       rejected: 0,
-      sample_collected: 0,
-      processing: 0,
+      ready_for_pickup: 0,
+      out_for_delivery: 0,
       completed: 0,
       cancelled: 0
     };
@@ -91,9 +91,9 @@ export async function POST(req) {
       }
     });
 
-    // 5. Get Recent Orders - FIXED: Correct relationship query
+    // 5. Get Recent Orders with Patient Details
     const { data: recentOrders, error: recentError } = await supabase
-      .from("lab_test_orders")
+      .from("medicine_orders")
       .select(`
         *,
         patient:patient_id (
@@ -101,13 +101,13 @@ export async function POST(req) {
           phone_number
         )
       `)
-      .eq("lab_id", lab_id)
+      .eq("chemist_id", chemist_id)
       .order("created_at", { ascending: false })
       .limit(10);
 
     if (recentError) throw recentError;
 
-    // Get patient details separately for patient names
+    // Get patient details separately
     const patientIds = [...new Set(recentOrders?.map(order => order.patient_id).filter(id => id))];
     
     let patientDetailsMap = {};
@@ -131,7 +131,7 @@ export async function POST(req) {
     
     if (orderIds.length > 0) {
       const { data: orderItems } = await supabase
-        .from("lab_test_order_items")
+        .from("medicine_order_items")
         .select("order_id")
         .in("order_id", orderIds);
 
@@ -145,9 +145,9 @@ export async function POST(req) {
 
     // 7. Get Revenue Data (Completed Orders)
     const { data: completedOrders, error: revenueError } = await supabase
-      .from("lab_test_orders")
+      .from("medicine_orders")
       .select("total_amount, created_at")
-      .eq("lab_id", lab_id)
+      .eq("chemist_id", chemist_id)
       .eq("status", "completed")
       .gte("created_at", startDate.toISOString())
       .lte("created_at", endDate.toISOString());
@@ -194,9 +194,9 @@ export async function POST(req) {
     previousEndDate.setDate(previousEndDate.getDate() - 1);
 
     const { data: previousOrders } = await supabase
-      .from("lab_test_orders")
+      .from("medicine_orders")
       .select("total_amount")
-      .eq("lab_id", lab_id)
+      .eq("chemist_id", chemist_id)
       .eq("status", "completed")
       .gte("created_at", previousStartDate.toISOString())
       .lte("created_at", previousEndDate.toISOString());
@@ -206,72 +206,94 @@ export async function POST(req) {
       ? parseFloat(((totalRevenue - previousRevenue) / previousRevenue * 100).toFixed(1))
       : totalRevenue > 0 ? 100 : 0;
 
-    // 10. Get Test Distribution from Order Items
+    // 10. Get Medicine Categories Distribution
     const { data: allOrderItems } = await supabase
-      .from("lab_test_order_items")
-      .select("test_name")
+      .from("medicine_order_items")
+      .select("medicine_name")
       .in("order_id", orderIds);
 
-    // Analyze test types
-    const testCategories = {};
+    // Analyze medicine types
+    const medicineCategories = {};
     allOrderItems?.forEach(item => {
-      const testName = (item.test_name || '').toLowerCase();
-      let category = 'Other Tests';
+      const medicineName = (item.medicine_name || '').toLowerCase();
+      let category = 'Other Medicines';
       
-      if (testName.includes('blood') || testName.includes('cbc') || testName.includes('hemoglobin') || testName.includes('platelet')) {
-        category = 'Blood Tests';
-      } else if (testName.includes('urine') || testName.includes('urinalysis')) {
-        category = 'Urine Tests';
-      } else if (testName.includes('liver') || testName.includes('kidney') || testName.includes('creatinine') || testName.includes('sgot') || testName.includes('sgpt')) {
-        category = 'Biochemistry';
-      } else if (testName.includes('hormone') || testName.includes('thyroid') || testName.includes('t3') || testName.includes('t4') || testName.includes('tsh')) {
-        category = 'Hormone Tests';
-      } else if (testName.includes('sugar') || testName.includes('glucose') || testName.includes('diabetes') || testName.includes('hba1c')) {
-        category = 'Diabetes Tests';
-      } else if (testName.includes('lipid') || testName.includes('cholesterol')) {
-        category = 'Lipid Profile';
+      if (medicineName.includes('antibiotic') || medicineName.includes('amoxicillin') || medicineName.includes('azithromycin')) {
+        category = 'Antibiotics';
+      } else if (medicineName.includes('pain') || medicineName.includes('paracetamol') || medicineName.includes('ibuprofen')) {
+        category = 'Pain Relief';
+      } else if (medicineName.includes('cough') || medicineName.includes('cold') || medicineName.includes('syrup')) {
+        category = 'Cough & Cold';
+      } else if (medicineName.includes('fever') || medicineName.includes('temperature')) {
+        category = 'Fever';
+      } else if (medicineName.includes('vitamin') || medicineName.includes('supplement')) {
+        category = 'Vitamins';
+      } else if (medicineName.includes('chronic') || medicineName.includes('diabetes') || medicineName.includes('blood pressure')) {
+        category = 'Chronic Care';
       }
       
-      testCategories[category] = (testCategories[category] || 0) + 1;
+      medicineCategories[category] = (medicineCategories[category] || 0) + 1;
     });
 
     // Convert to array for chart
-    const testDistribution = Object.entries(testCategories).map(([name, value]) => ({
+    const medicineDistribution = Object.entries(medicineCategories).map(([name, value]) => ({
       name,
       value,
       percentage: Math.round((value / (allOrderItems?.length || 1)) * 100)
     })).sort((a, b) => b.value - a.value);
 
-    // 11. Prepare Recent Orders with Patient Names
+    // 11. Get Inventory Statistics
+    const { count: totalMedicines, error: inventoryError } = await supabase
+      .from("chemist_inventory")
+      .select("*", { count: 'exact', head: true })
+      .eq("chemist_id", chemist_id);
+
+    if (inventoryError) throw inventoryError;
+
+    // 12. Get Low Stock Medicines
+    const { data: lowStockMedicines } = await supabase
+      .from("chemist_inventory")
+      .select(`
+        *,
+        medicine:chemist_medicines!inner(name, brand)
+      `)
+      .eq("chemist_id", chemist_id)
+      .lt("total_stock", 10)
+      .limit(5);
+
+    // 13. Prepare Recent Orders with Patient Names
     const enhancedRecentOrders = recentOrders?.map(order => ({
       ...order,
       patient_details: {
-        full_name: patientDetailsMap[order.patient_id] || 'Unknown Patient',
+        full_name: patientDetailsMap[order.patient_id] || 'Unknown Customer',
         phone_number: order.patient?.phone_number
       },
-      tests_count: orderItemsCount[order.id] || 0
+      items_count: orderItemsCount[order.id] || 0
     })) || [];
 
-    // 12. Prepare Dashboard Data
+    // 14. Prepare Dashboard Data
     const dashboardData = {
-      lab: {
-        ...labData,
+      chemist: {
+        ...chemistData,
         profile_picture: userData?.profile_picture
       },
       stats: {
         total_orders: totalOrders || 0,
-        pending_orders: statusCounts.pending + statusCounts.sent_to_lab,
+        pending_orders: statusCounts.pending + statusCounts.sent_to_chemist,
         completed_orders: statusCounts.completed,
         revenue_30_days: totalRevenue,
         revenue_change: revenueChange,
         avg_order_value: totalOrders > 0 ? parseFloat((totalRevenue / totalOrders).toFixed(2)) : 0,
-        processing_orders: statusCounts.processing + statusCounts.sample_collected,
-        rejected_orders: statusCounts.rejected + statusCounts.cancelled
+        processing_orders: statusCounts.processing + statusCounts.ready_for_pickup + statusCounts.out_for_delivery,
+        rejected_orders: statusCounts.rejected + statusCounts.cancelled,
+        total_medicines: totalMedicines || 0,
+        low_stock_count: lowStockMedicines?.length || 0
       },
       status_distribution: statusCounts,
       recent_orders: enhancedRecentOrders,
       daily_revenue: dailyRevenue,
-      test_distribution: testDistribution,
+      medicine_distribution: medicineDistribution,
+      low_stock_medicines: lowStockMedicines || [],
       time_period: {
         start: startDate.toISOString(),
         end: endDate.toISOString(),
@@ -280,13 +302,13 @@ export async function POST(req) {
       }
     };
 
-    return success("Dashboard data fetched successfully", dashboardData, 200, {
+    return success("Chemist dashboard data fetched successfully", dashboardData, 200, {
       headers: corsHeaders,
     });
   } catch (err) {
-    console.error("Dashboard API Error:", err);
+    console.error("Chemist Dashboard API Error:", err);
     return failure(
-      "Failed to fetch dashboard data",
+      "Failed to fetch chemist dashboard data",
       err.message,
       500,
       { headers: corsHeaders }

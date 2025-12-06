@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   ClipboardList,
   Pill,
   Clock,
   CheckCircle2,
   TrendingUp,
+  TrendingDown,
   RefreshCw,
   Eye,
   Filter,
@@ -17,306 +18,854 @@ import {
   Truck,
   Users,
   Beaker,
-  ChevronRight
+  ChevronRight,
+  AlertCircle,
+  Calendar,
+  BarChart3,
+  LineChart as LineChartIcon,
+  PieChart as PieChartIcon,
+  BarChart as BarChartIcon,
+  Activity,
+  Package,
+  AlertTriangle,
+  DollarSign,
+  Target,
+  Zap,
+  MoreVertical,
+  AlertOctagon
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import toast, { Toaster } from "react-hot-toast";
+import { getLoggedInUser } from "@/lib/authHelpers";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
 export default function ChemistDashboard() {
   const router = useRouter();
-
-  const [stats, setStats] = useState({
-    totalOrders: 0,
-    pendingOrders: 0,
-    completedOrders: 0,
-    totalMedicines: 0,
-  });
-
-  const [recentOrders, setRecentOrders] = useState([]);
+  const chemist = getLoggedInUser("chemist");
+  const [loading, setLoading] = useState(true);
+  const [dashboard, setDashboard] = useState(null);
+  const [timeRange, setTimeRange] = useState("30d");
+  const [chartType, setChartType] = useState("line");
+  const didFetch = useRef(false);
 
   useEffect(() => {
+    if (!chemist?.id) {
+      toast.error("Chemist not found. Please login again.");
+      router.push("/auth/login");
+      return;
+    }
     
-    setStats({
-      totalOrders: 142,
-      pendingOrders: 18,
-      completedOrders: 124,
-      totalMedicines: 456,
-    });
+    if (!didFetch.current) {
+      didFetch.current = true;
+      fetchDashboard();
+    }
+  }, [chemist?.id, timeRange]);
 
-    setRecentOrders([
-      {
-        id: 1,
-        customer: "John Smith",
-        items: 5,
-        amount: 1240,
-        status: "pending",
-        time: "10 min ago",
-      },
-      {
-        id: 2,
-        customer: "Sarah Johnson",
-        items: 3,
-        amount: 680,
-        status: "completed",
-        time: "25 min ago",
-      },
-      {
-        id: 3,
-        customer: "Robert Davis",
-        items: 8,
-        amount: 2150,
-        status: "processing",
-        time: "1 hour ago",
-      },
-    ]);
-  }, []);
+  const fetchDashboard = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/chemists/dashboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          chemist_id: chemist.id, 
+          time_range: timeRange 
+        }),
+      });
+
+      const result = await res.json();
+
+      if (result.success) {
+        setDashboard(result.data);
+      } else {
+        toast.error(result.message || "Failed to load dashboard");
+      }
+    } catch (err) {
+      console.error("Dashboard fetch error:", err);
+      toast.error("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
-      case "completed":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-      case "processing":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400";
-    }
+    const colors = {
+      'completed': 'bg-emerald-500 dark:bg-emerald-600',
+      'ready_for_pickup': 'bg-blue-500 dark:bg-blue-600',
+      'out_for_delivery': 'bg-indigo-500 dark:bg-indigo-600',
+      'pending': 'bg-amber-500 dark:bg-amber-600',
+      'sent_to_chemist': 'bg-cyan-500 dark:bg-cyan-600',
+      'approved': 'bg-green-500 dark:bg-green-600',
+      'rejected': 'bg-red-500 dark:bg-red-600',
+      'cancelled': 'bg-gray-500 dark:bg-gray-600'
+    };
+    return colors[status] || 'bg-gray-500 dark:bg-gray-600';
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "pending":
-        return <Clock className="w-4 h-4" />;
-      case "completed":
-        return <CheckCircle2 className="w-4 h-4" />;
-      case "processing":
-        return <RefreshCw className="w-4 h-4" />;
-      default:
-        return null;
-    }
+  const getStatusText = (status) => {
+    const texts = {
+      'completed': 'Completed',
+      'ready_for_pickup': 'Ready for Pickup',
+      'out_for_delivery': 'Out for Delivery',
+      'pending': 'Pending',
+      'sent_to_chemist': 'Sent to Chemist',
+      'approved': 'Approved',
+      'rejected': 'Rejected',
+      'cancelled': 'Cancelled'
+    };
+    return texts[status] || status.replace(/_/g, ' ');
   };
+
+  const timeRanges = [
+    { id: "7d", label: "7 Days" },
+    { id: "30d", label: "30 Days" },
+    { id: "90d", label: "90 Days" },
+    { id: "1y", label: "1 Year" },
+  ];
+
+  const chartTypes = [
+    { id: "line", label: "Line", icon: <LineChartIcon className="w-4 h-4" /> },
+    { id: "area", label: "Area", icon: <AreaChart className="w-4 h-4" /> },
+    { id: "bar", label: "Bar", icon: <BarChartIcon className="w-4 h-4" /> },
+  ];
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+          <p className="font-semibold text-gray-900 dark:text-gray-100 mb-2">{label}</p>
+          {payload.map((entry, index) => (
+            <div key={index} className="flex items-center justify-between gap-4 mb-1">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: entry.color }}
+                />
+                <span className="text-sm text-gray-600 dark:text-gray-400">{entry.dataKey}:</span>
+              </div>
+              <span className="font-bold text-gray-900 dark:text-gray-100">
+                {entry.dataKey === "amount" ? "₹" : ""}
+                {entry.value.toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const PieTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+          <p className="font-semibold text-gray-900 dark:text-gray-100">{data.name}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {data.value} items ({data.percentage}%)
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white dark:from-gray-900 dark:to-gray-900 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 border-4 border-blue-200 dark:border-blue-800 border-t-blue-600 dark:border-t-blue-500 rounded-full animate-spin"></div>
+          </div>
+          <p className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">Loading your dashboard...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Fetching latest chemist insights</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dashboard) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white dark:from-gray-900 dark:to-gray-900 p-6">
+        <div className="mx-auto">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 text-center">
+            <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Dashboard Unavailable</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">We couldn't load your dashboard data.</p>
+            <button
+              onClick={fetchDashboard}
+              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 text-white rounded-xl font-medium hover:opacity-90 transition-opacity duration-200 flex items-center gap-2 mx-auto"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { chemist: chemistInfo, stats, recent_orders, daily_revenue, medicine_distribution, status_distribution, low_stock_medicines } = dashboard;
+  const COLORS = ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#84cc16', '#ef4444'];
 
   return (
-    <div className="w-full min-h-screen p-6 bg-gradient-to-b from-blue-50/50 to-white dark:from-gray-900 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white dark:from-gray-900 dark:to-gray-900 p-4 md:p-6 transition-colors duration-200">
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            borderRadius: '12px',
+            padding: '16px',
+            border: '1px solid #334155',
+          },
+        }}
+      />
 
-      {/* Header Section */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-md">
-            <Beaker className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-blue-900 dark:text-blue-100">
-              Chemist Dashboard
-            </h1>
-            <p className="text-blue-700 dark:text-blue-300 text-sm">
-              Overview of your chemist operations
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-3 mt-4 lg:mt-0 hidden">
-          <button className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-gray-700 flex items-center space-x-2">
-            <Filter className="w-4 h-4" />
-            <span>Filter</span>
-          </button>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center space-x-2 shadow-md">
-            <Download className="w-4 h-4" />
-            <span>Export</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Cards (4 only) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-
-        {/* Total Orders */}
-        <div className="p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center justify-between">
+      {/* HEADER */}
+      <div className="mx-auto">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 text-white rounded-2xl flex items-center justify-center shadow-xl">
+                <Beaker className="w-8 h-8" />
+              </div>
+              <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full border-4 border-white dark:border-gray-800 flex items-center justify-center shadow-lg">
+                <Zap className="w-3 h-3 text-white" />
+              </div>
+            </div>
             <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Total Orders</p>
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
-                {stats.totalOrders}
-              </h2>
+              <h1 className="text-3xl md:text-4xl font-bold text-blue-900 dark:text-blue-100">
+                Chemist Dashboard
+              </h1>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <p className="text-blue-700 dark:text-blue-300">
+                  Welcome back, <span className="font-semibold">{chemistInfo?.pharmacy_name || chemistInfo?.store_name || "Your Pharmacy"}</span>
+                </p>
+                {chemistInfo?.gstin && (
+                  <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full">
+                    GST: {chemistInfo.gstin}
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-800/40 text-blue-600 dark:text-blue-300 rounded-xl flex items-center justify-center">
-              <ClipboardList size={22} />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="bg-white dark:bg-gray-800 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                <select 
+                  value={timeRange}
+                  onChange={(e) => setTimeRange(e.target.value)}
+                  className="bg-transparent font-medium text-gray-800 dark:text-gray-200 focus:outline-none cursor-pointer"
+                >
+                  {timeRanges.map((range) => (
+                    <option key={range.id} value={range.id}>{range.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <button
+              onClick={fetchDashboard}
+              className="px-4 py-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium shadow-sm transition-colors duration-200 flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </button>
+            <button className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 text-white rounded-xl font-medium hover:opacity-90 transition-opacity duration-200 flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              Export
+            </button>
+          </div>
+        </div>
+
+        {/* STATS GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Total Orders */}
+          <div className="group bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/30 rounded-xl">
+                <ClipboardList className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Orders</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">{timeRanges.find(r => r.id === timeRange)?.label}</div>
+              </div>
+            </div>
+            <h3 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">{stats.total_orders}</h3>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (stats.total_orders / 1000) * 100)}%` }}
+                />
+              </div>
+              <Activity className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+            </div>
+          </div>
+
+          {/* Pending Orders */}
+          <div className="group bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/30 dark:to-amber-800/30 rounded-xl">
+                <Clock className="w-6 h-6 text-amber-600 dark:text-amber-500" />
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Pending</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">Requires action</div>
+              </div>
+            </div>
+            <h3 className="text-4xl font-bold text-amber-600 dark:text-amber-500 mb-2">{stats.pending_orders}</h3>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (stats.pending_orders / stats.total_orders) * 100 || 0)}%` }}
+                />
+              </div>
+              <span className="text-xs font-medium text-amber-600 dark:text-amber-500">
+                {stats.pending_orders > 0 ? "Action required" : "All clear"}
+              </span>
+            </div>
+          </div>
+
+          {/* Completed Orders */}
+          <div className="group bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/30 dark:to-emerald-800/30 rounded-xl">
+                <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-500" />
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Completed</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">Success rate</div>
+              </div>
+            </div>
+            <h3 className="text-4xl font-bold text-emerald-600 dark:text-emerald-500 mb-2">{stats.completed_orders}</h3>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (stats.completed_orders / stats.total_orders) * 100 || 0)}%` }}
+                />
+              </div>
+              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-500">
+                {Math.round((stats.completed_orders / stats.total_orders) * 100 || 0)}%
+              </span>
+            </div>
+          </div>
+
+          {/* Revenue */}
+          <div className="group bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-gradient-to-br from-violet-100 to-violet-50 dark:from-violet-900/30 dark:to-violet-800/30 rounded-xl">
+                <DollarSign className="w-6 h-6 text-violet-600 dark:text-violet-500" />
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Revenue</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">Last {timeRanges.find(r => r.id === timeRange)?.label}</div>
+              </div>
+            </div>
+            <h3 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+              {formatCurrency(stats.revenue_30_days)}
+            </h3>
+            <div className="flex items-center gap-2">
+              {stats.revenue_change >= 0 ? (
+                <>
+                  <TrendingUp className="w-4 h-4 text-emerald-500" />
+                  <span className="text-sm font-medium text-emerald-600 dark:text-emerald-500">
+                    +{stats.revenue_change}%
+                  </span>
+                </>
+              ) : (
+                <>
+                  <TrendingDown className="w-4 h-4 text-red-500" />
+                  <span className="text-sm font-medium text-red-600 dark:text-red-500">
+                    {stats.revenue_change}%
+                  </span>
+                </>
+              )}
+              <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">vs previous period</span>
             </div>
           </div>
         </div>
 
-        {/* Pending Orders */}
-        <div className="p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Pending Orders</p>
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
-                {stats.pendingOrders}
-              </h2>
+        {/* MAIN CHART SECTION */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* REVENUE CHART */}
+          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  Revenue Trend
+                </h2>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">Daily revenue over time</p>
+              </div>
+              
+              <div className="flex items-center gap-2 mt-4 md:mt-0">
+                <div className="bg-gray-100 dark:bg-gray-700 p-1 rounded-lg flex">
+                  {chartTypes.map((type) => (
+                    <button
+                      key={type.id}
+                      onClick={() => setChartType(type.id)}
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${
+                        chartType === type.id
+                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300'
+                      }`}
+                    >
+                      {type.icon}
+                      {type.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="w-12 h-12 bg-amber-100 dark:bg-amber-800/40 text-amber-600 dark:text-amber-300 rounded-xl flex items-center justify-center">
-              <Clock size={22} />
+
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                {daily_revenue?.length > 0 ? (
+                  chartType === "line" ? (
+                    <LineChart data={daily_revenue}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.1} />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke="#9ca3af"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={{ stroke: '#4b5563' }}
+                      />
+                      <YAxis 
+                        stroke="#9ca3af"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={{ stroke: '#4b5563' }}
+                        tickFormatter={(value) => `₹${value/1000}k`}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="amount"
+                        name="Revenue"
+                        stroke="#4f46e5"
+                        strokeWidth={3}
+                        dot={{ r: 4 }}
+                        activeDot={{ r: 6, strokeWidth: 0 }}
+                      />
+                    </LineChart>
+                  ) : chartType === "area" ? (
+                    <AreaChart data={daily_revenue}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.1} />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke="#9ca3af"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={{ stroke: '#4b5563' }}
+                      />
+                      <YAxis 
+                        stroke="#9ca3af"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={{ stroke: '#4b5563' }}
+                        tickFormatter={(value) => `₹${value/1000}k`}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Area
+                        type="monotone"
+                        dataKey="amount"
+                        name="Revenue"
+                        stroke="#4f46e5"
+                        fill="url(#colorRevenue)"
+                        strokeWidth={2}
+                      />
+                      <defs>
+                        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.1}/>
+                        </linearGradient>
+                      </defs>
+                    </AreaChart>
+                  ) : (
+                    <BarChart data={daily_revenue}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.1} />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke="#9ca3af"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={{ stroke: '#4b5563' }}
+                      />
+                      <YAxis 
+                        stroke="#9ca3af"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={{ stroke: '#4b5563' }}
+                        tickFormatter={(value) => `₹${value/1000}k`}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Bar
+                        dataKey="amount"
+                        name="Revenue"
+                        fill="#4f46e5"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  )
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <BarChart3 className="w-12 h-12 text-gray-400 dark:text-gray-600 mb-3" />
+                    <p className="text-gray-500 dark:text-gray-400">No revenue data available</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500">Complete orders will appear here</p>
+                  </div>
+                )}
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* MEDICINE DISTRIBUTION PIE CHART */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <Pill className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  Medicine Distribution
+                </h2>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">By category</p>
+              </div>
+              <Users className="w-5 h-5 text-gray-400 dark:text-gray-600" />
+            </div>
+
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                {medicine_distribution && medicine_distribution.length > 0 ? (
+                  <PieChart>
+                    <Pie
+                      data={medicine_distribution}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percentage }) => `${name}: ${percentage}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {medicine_distribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<PieTooltip />} />
+                  </PieChart>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <PieChartIcon className="w-12 h-12 text-gray-400 dark:text-gray-600 mb-3" />
+                    <p className="text-gray-500 dark:text-gray-400">No medicine data available</p>
+                  </div>
+                )}
+              </ResponsiveContainer>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mt-4">
+              {medicine_distribution?.slice(0, 4).map((item, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{item.name}</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 ml-auto">
+                    {item.value}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Completed */}
-        <div className="p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Completed</p>
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
-                {stats.completedOrders}
+        {/* RECENT ORDERS & LOW STOCK MEDICINES */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* RECENT ORDERS */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                Recent Orders
+                <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
+                  Last 10 orders
+                </span>
               </h2>
+              <button 
+                onClick={() => router.push('/chemist/orders')}
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium text-sm flex items-center gap-1 group"
+              >
+                View All
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
             </div>
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-800/40 text-green-600 dark:text-green-300 rounded-xl flex items-center justify-center">
-              <CheckCircle2 size={22} />
+
+            <div className="space-y-4">
+              {recent_orders?.length > 0 ? (
+                recent_orders.slice(0, 5).map((order) => (
+                  <div
+                    key={order.id}
+                    className="group p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/30 dark:hover:bg-blue-900/20 transition-all duration-200 cursor-pointer"
+                    onClick={() => router.push(`/chemist/orders/${order.id}`)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={`p-2 rounded-lg ${order.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-amber-100 dark:bg-amber-900/30'}`}>
+                          {order.status === 'completed' ? (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                          ) : (
+                            <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-bold text-gray-900 dark:text-gray-100">#{order.id?.substring(0, 8)}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)} text-white`}>
+                              {getStatusText(order.status)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                            <Users className="w-3 h-3" />
+                            {order.patient_details?.full_name || "Unknown Customer"}
+                            {order.items_count > 0 && (
+                              <span className="ml-2 px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-xs rounded">
+                                {order.items_count} item{order.items_count !== 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                          {formatCurrency(order.total_amount || 0)}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          {formatDate(order.created_at)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <Package className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-3" />
+                  <p className="text-gray-500 dark:text-gray-400">No recent orders</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Orders will appear here when received</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* LOW STOCK MEDICINES */}
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl shadow-xl p-6 border border-amber-200 dark:border-amber-800">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-amber-900 dark:text-amber-100 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                Low Stock Alert
+                {stats.low_stock_count > 0 && (
+                  <span className="ml-2 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-xs rounded-full">
+                    {stats.low_stock_count} items
+                  </span>
+                )}
+              </h2>
+              <button 
+                onClick={() => router.push('/chemist/inventory')}
+                className="text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-medium text-sm flex items-center gap-1 group"
+              >
+                Manage
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+
+            {low_stock_medicines?.length > 0 ? (
+              <div className="space-y-4">
+                {low_stock_medicines.slice(0, 5).map((medicine, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-white/50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-800">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg">
+                        <Pill className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-amber-100">
+                          {medicine.medicine?.name || 'Unknown Medicine'}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-amber-300">
+                          {medicine.medicine?.brand || 'No brand'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-lg font-bold ${medicine.total_stock <= 5 ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                        {medicine.total_stock}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-amber-400">in stock</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <CheckCircle2 className="w-12 h-12 text-emerald-400 dark:text-emerald-500 mx-auto mb-3" />
+                <p className="text-gray-700 dark:text-gray-300 font-medium">All medicines in stock</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">No low stock alerts</p>
+              </div>
+            )}
+
+            <div className="mt-6 pt-4 border-t border-amber-200 dark:border-amber-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">Total Medicines</p>
+                  <p className="text-2xl font-bold text-amber-900 dark:text-amber-100">
+                    {stats.total_medicines}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-amber-700 dark:text-amber-300">Stock Health</p>
+                  <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                    {stats.low_stock_count === 0 ? 'Excellent' : 'Needs Attention'}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Total Medicines */}
-        <div className="p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Medicines Ordered</p>
-              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mt-1">
-                {stats.totalMedicines}
-              </h2>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-800/40 text-purple-600 dark:text-purple-300 rounded-xl flex items-center justify-center">
-              <Pill size={22} />
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 mb-8">
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm p-6">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6">
+        {/* QUICK ACTIONS */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 mb-8 hidden">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
+            <Zap className="w-5 h-5 text-amber-600 dark:text-amber-500" />
             Quick Actions
           </h2>
-
+          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <button
+              onClick={() => router.push('/chemist/orders/new')}
+              className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800 rounded-xl hover:shadow-md transition-shadow duration-200 text-left group"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/40 rounded-lg">
+                  <Plus className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <ChevronRight className="w-4 h-4 text-blue-400 group-hover:translate-x-1 transition-transform" />
+              </div>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">New Order</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Create manual order</p>
+            </button>
 
             <button
-              onClick={() => router.push("/chemist/orders/new")}
-              className="p-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center justify-between"
+              onClick={() => router.push('/chemist/inventory')}
+              className="p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border border-emerald-200 dark:border-emerald-800 rounded-xl hover:shadow-md transition-shadow duration-200 text-left group"
             >
-              <div className="flex items-center">
-                <Plus className="w-5 h-5 mr-3" />
-                <span>New Order</span>
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg">
+                  <ShoppingCart className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <ChevronRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-1 transition-transform" />
               </div>
-              <ChevronRight className="w-5 h-5" />
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">Restock</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Manage inventory</p>
             </button>
 
-            <button className="p-4 bg-green-600 text-white rounded-xl hover:bg-green-700 flex items-center justify-between">
-              <div className="flex items-center">
-                <ShoppingCart className="w-5 h-5 mr-3" />
-                <span>Restock</span>
+            <button
+              onClick={() => router.push('/chemist/invoices')}
+              className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800 rounded-xl hover:shadow-md transition-shadow duration-200 text-left group"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900/40 rounded-lg">
+                  <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <ChevronRight className="w-4 h-4 text-purple-400 group-hover:translate-x-1 transition-transform" />
               </div>
-              <ChevronRight className="w-5 h-5" />
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">Invoices</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">View & manage bills</p>
             </button>
 
-            <button className="p-4 bg-purple-600 text-white rounded-xl hover:bg-purple-700 flex items-center justify-between">
-              <div className="flex items-center">
-                <FileText className="w-5 h-5 mr-3" />
-                <span>Invoice</span>
+            <button
+              onClick={() => router.push('/chemist/delivery')}
+              className="p-4 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border border-amber-200 dark:border-amber-800 rounded-xl hover:shadow-md transition-shadow duration-200 text-left group"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg">
+                  <Truck className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <ChevronRight className="w-4 h-4 text-amber-400 group-hover:translate-x-1 transition-transform" />
               </div>
-              <ChevronRight className="w-5 h-5" />
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">Delivery</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Track shipments</p>
             </button>
+          </div>
+        </div>
 
-            <button className="p-4 bg-amber-600 text-white rounded-xl hover:bg-amber-700 flex items-center justify-between">
-              <div className="flex items-center">
-                <Truck className="w-5 h-5 mr-3" />
-                <span>Track Delivery</span>
-              </div>
-              <ChevronRight className="w-5 h-5" />
-            </button>
-
+        {/* FOOTER */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Last updated: {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+              </p>
+              <p className="text-gray-800 dark:text-gray-300 font-medium">
+                {stats.total_orders > 0 ? 'All systems operational' : 'Ready for orders'} • Next data refresh in 5 minutes
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={fetchDashboard}
+                className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 text-white rounded-xl font-medium hover:opacity-90 transition-opacity duration-200 flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Refresh Dashboard
+              </button>
+              <button 
+                onClick={() => window.print()}
+                className="px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 font-medium shadow-sm transition-colors duration-200"
+              >
+                Export Report
+              </button>
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Recent Orders Table */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-              Recent Orders
-            </h2>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              Latest transactions
-            </p>
-          </div>
-          <button
-            onClick={() => router.push("/chemist/orders")}
-            className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-          >
-            View All
-          </button>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 dark:bg-gray-800/40">
-                <th className="text-left p-4 text-sm font-medium">Customer</th>
-                <th className="text-left p-4 text-sm font-medium">Items</th>
-                <th className="text-left p-4 text-sm font-medium">Amount</th>
-                <th className="text-left p-4 text-sm font-medium">Status</th>
-                <th className="text-left p-4 text-sm font-medium">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentOrders.map((order) => (
-                <tr
-                  key={order.id}
-                  className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/20"
-                >
-                  <td className="p-4">
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {order.customer}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {order.time}
-                      </p>
-                    </div>
-                  </td>
-
-                  <td className="p-4">
-                    <span className="px-3 py-1 bg-blue-100 dark:bg-blue-800/40 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                      {order.items} items
-                    </span>
-                  </td>
-
-                  <td className="p-4 font-semibold">₹{order.amount}</td>
-
-                  <td className="p-4">
-                    <span
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium flex items-center w-fit ${getStatusColor(order.status)}`}
-                    >
-                      {getStatusIcon(order.status)}
-                      <span className="ml-1.5 capitalize">{order.status}</span>
-                    </span>
-                  </td>
-
-                  <td className="p-4">
-                    <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600 dark:text-blue-400">
-                      <Eye className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-
-          </table>
-        </div>
-      </div>
-
     </div>
   );
 }

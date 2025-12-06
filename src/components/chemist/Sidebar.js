@@ -45,26 +45,26 @@ export default function ChemistSidebar({ open, mobileOpen, onToggle, onCloseMobi
       icon: <ClipboardList size={22} />,
       path: `/chemist/orders`,
     },
-    {
-      name: "Medicines",
-      icon: <Pill size={22} />,
-      path: `/chemist/medicines`,
-    },
-    {
-      name: "Inventory",
-      icon: <PackageSearch size={22} />,
-      path: `/chemist/inventory`,
-    },
+    // {
+    //   name: "Medicines",
+    //   icon: <Pill size={22} />,
+    //   path: `/chemist/medicines`,
+    // },
+    // {
+    //   name: "Inventory",
+    //   icon: <PackageSearch size={22} />,
+    //   path: `/chemist/inventory`,
+    // },
     {
       name: "Profile",
       icon: <User size={22} />,
       path: `/chemist/profile`,
     },
-    {
-      name: "Settings",
-      icon: <Settings size={22} />,
-      path: `/chemist/settings`,
-    },
+    // {
+    //   name: "Settings",
+    //   icon: <Settings size={22} />,
+    //   path: `/chemist/settings`,
+    // },
   ];
 
   const handleLogout = () => {
