@@ -65,7 +65,7 @@ export default function Navbar({ onOpenAuth }) {
       onOpenAuth(userType);
     } else {
       // Redirect other user types to their respective dashboards
-      window.location.href = `/${userType}/dashboard`;
+      window.location.href = `/${userType}/login`;
     }
   };
 
