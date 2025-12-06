@@ -1,9 +1,0 @@
-{
-  "functions": {
-    "app/api/**/*.js": {
-      "runtime": "vercel-nodejs@20.0.0",
-      "maxDuration": 60,
-      "memory": 1024
-    }
-  }
-}
