@@ -46,7 +46,7 @@ export async function POST(req) {
     // ------------------------------------------
     await supabase.from("notifications").insert({
       user_id: doctor_id,
-      title: "Incoming Instant Call",
+      title: "Incoming Instant Consultation",
       message: "A patient is requesting a video consultation.",
       type: "instant_call",
       metadata: {
@@ -69,8 +69,8 @@ export async function POST(req) {
       await admin.messaging().send({
         token: doctorUser.fcm_token,
         notification: {
-          title: "Incoming Instant Call 📞",
-          body: "A patient is calling you now.",
+          title: "Incoming Instant Consultation",
+          body: "A patient is requesting for a video consultation.",
         },
         data: {
           type: "instant_call",
