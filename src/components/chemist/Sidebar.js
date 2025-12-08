@@ -15,6 +15,7 @@ import {
   Beaker,
   FlaskRound,
   FileText,
+  Layers,
   Bell,
   FileBarChart,
   ShoppingCart,
@@ -45,16 +46,26 @@ export default function ChemistSidebar({ open, mobileOpen, onToggle, onCloseMobi
       icon: <ClipboardList size={22} />,
       path: `/chemist/orders`,
     },
-    // {
-    //   name: "Medicines",
-    //   icon: <Pill size={22} />,
-    //   path: `/chemist/medicines`,
-    // },
-    // {
-    //   name: "Inventory",
-    //   icon: <PackageSearch size={22} />,
-    //   path: `/chemist/inventory`,
-    // },
+    {
+      name: "Medicines",
+      icon: <Pill size={22} />,
+      path: `/chemist/medicines`,
+    },
+    {
+      name: "Inventory",
+      icon: <PackageSearch size={22} />,
+      path: `/chemist/inventory`,
+    },
+    {
+      name: "Batches",
+      icon: <Layers size={22} />,
+      path: `/chemist/inventory/batches`,
+    },
+    {
+      name: "Logs",
+      icon: <Layers size={22} />,
+      path: `/chemist/inventory/logs`,
+    },
     {
       name: "Profile",
       icon: <User size={22} />,
