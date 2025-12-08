@@ -119,8 +119,8 @@ export default function MedicinesPage() {
           totalPages: pag.total_pages,
           totalItems: pag.total,
         }));
-
-        calculateStats(data);
+        console.log("Fetched medicines:", data, "Pagination:", pag);
+        calculateStats(data,pag?.total);
       } else {
         toast.error(json.message);
       }
@@ -148,12 +148,12 @@ export default function MedicinesPage() {
   /* -----------------------------------------
       CALCULATE STATS
   ----------------------------------------- */
-  const calculateStats = (data) => {
+  const calculateStats = (data,pageItems) => {
     const categories = new Set(data.map((d) => d.category));
     const strengths = new Set(data.map((d) => d.strength));
 
     setStats({
-      total: pagination.totalItems,
+      total: pageItems,
       categories: categories.size,
       strengths: strengths.size,
     });
