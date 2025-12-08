@@ -119,7 +119,7 @@ export default function MedicinesPage() {
           totalPages: pag.total_pages,
           totalItems: pag.total,
         }));
-        console.log("Fetched medicines:", data, "Pagination:", pag);
+        // console.log("Fetched medicines:", data, "Pagination:", pag);
         calculateStats(data,pag?.total);
       } else {
         toast.error(json.message);

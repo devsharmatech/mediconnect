@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabaseAdmin";
 import { success, failure } from "@/lib/response";
 import { corsHeaders } from "@/lib/cors";
@@ -22,15 +21,19 @@ export async function POST(req) {
     const mobile = formData.get("mobile");
     const whatsapp = formData.get("whatsapp");
     const registration_no = formData.get("registration_no");
-    
+
     const consent_terms = formData.get("consent_terms") === "true";
 
     if (!phone_number || !owner_name || !pharmacy_name || !registration_no) {
-      return failure("Missing required fields.", null, 400, { headers: corsHeaders });
+      return failure("Missing required fields.", null, 400, {
+        headers: corsHeaders,
+      });
     }
 
     if (!consent_terms) {
-      return failure("Please accept terms and conditions.", null, 400, { headers: corsHeaders });
+      return failure("Please accept terms and conditions.", null, 400, {
+        headers: corsHeaders,
+      });
     }
     const { data: existingPhone } = await supabase
       .from("users")
@@ -39,7 +42,12 @@ export async function POST(req) {
       .maybeSingle();
 
     if (existingPhone) {
-      return failure("A chemist with this phone number already exists.", null, 409, { headers: corsHeaders });
+      return failure(
+        "A chemist with this phone number already exists.",
+        null,
+        409,
+        { headers: corsHeaders }
+      );
     }
 
     const { data: existingReg } = await supabase
@@ -49,16 +57,23 @@ export async function POST(req) {
       .maybeSingle();
 
     if (existingReg) {
-      return failure("A chemist with this registration number already exists.", null, 409, { headers: corsHeaders });
+      return failure(
+        "A chemist with this registration number already exists.",
+        null,
+        409,
+        { headers: corsHeaders }
+      );
     }
 
     const { data: user, error: userError } = await supabase
       .from("users")
-      .insert([{ 
-        phone_number, 
-        role: "chemist", 
-        is_verified: true 
-      }])
+      .insert([
+        {
+          phone_number,
+          role: "chemist",
+          is_verified: true,
+        },
+      ])
       .select()
       .single();
 
@@ -69,7 +84,7 @@ export async function POST(req) {
 
       const fileExt = file.name.split(".").pop();
       const fileName = `${fieldName}/${fieldName}-${Date.now()}.${fileExt}`;
-      
+
       const { error: uploadError } = await supabase.storage
         .from("chemist-documents")
         .upload(fileName, file, { upsert: false });
@@ -103,95 +118,103 @@ export async function POST(req) {
     }
 
     // 🔸 Step 3: Insert chemist details
-    const { error: chemistError } = await supabase.from("chemist_details").insert([
-      {
-        id: user.id,
-        owner_name,
-        email,
-        address,
-        latitude: latitude ? parseFloat(latitude) : null,
-        longitude: longitude ? parseFloat(longitude) : null,
-        gstin,
-        kyc_data: parseJSON(formData.get("kyc_data") || []),
-        payout_mode,
-        mobile,
-        whatsapp,
-        pharmacy_name,
-        registration_no,
-        consent_terms,
-        ...uploadedDocs,
-      },
-    ]);
+    const { error: chemistError } = await supabase
+      .from("chemist_details")
+      .insert([
+        {
+          id: user.id,
+          owner_name,
+          email,
+          address,
+          latitude: latitude ? parseFloat(latitude) : null,
+          longitude: longitude ? parseFloat(longitude) : null,
+          gstin,
+          kyc_data: parseJSON(formData.get("kyc_data") || []),
+          payout_mode,
+          mobile,
+          whatsapp,
+          pharmacy_name,
+          registration_no,
+          consent_terms,
+          ...uploadedDocs,
+        },
+      ]);
 
     if (chemistError) throw chemistError;
 
-    return success("Chemist onboarded successfully.", { id: user.id }, 201, { headers: corsHeaders });
+    return success("Chemist onboarded successfully.", { id: user.id }, 201, {
+      headers: corsHeaders,
+    });
   } catch (error) {
     console.error("Chemist Onboarding Error:", error);
-    return failure("Failed to onboard chemist.", error.message, 500, { headers: corsHeaders });
+    return failure("Failed to onboard chemist.", error.message, 500, {
+      headers: corsHeaders,
+    });
   }
 }
 
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const page = parseInt(searchParams.get('page')) || 1;
-    const limit = parseInt(searchParams.get('limit')) || 10;
-    const search = searchParams.get('search') || '';
-    const status = searchParams.get('status') || '';
-    const payout_mode = searchParams.get('payout_mode') || '';
-    const sortBy = searchParams.get('sortBy') || 'created_at';
-    const sortOrder = searchParams.get('sortOrder') || 'desc';
+    const page = parseInt(searchParams.get("page")) || 1;
+    const limit = parseInt(searchParams.get("limit")) || 10;
+    const search = searchParams.get("search") || "";
+    const status = searchParams.get("status") || "";
+    const payout_mode = searchParams.get("payout_mode") || "";
+    const sortBy = searchParams.get("sortBy") || "created_at";
+    const sortOrder = searchParams.get("sortOrder") || "desc";
 
     // Calculate pagination
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
     // Build query
-    let query = supabase
-      .from("chemist_details")
-      .select(
-        `*,
-         users:id (
-            id,
-            un_id,
-            phone_number,
-            role,
-            status,
-            created_at,
-            profile_picture
-         )`,
-        { count: 'exact' }
-      );
+    let query = supabase.from("chemist_details").select(
+      `*,
+   users!chemist_details_id_fkey (
+      id,
+      un_id,
+      phone_number,
+      role,
+      status,
+      created_at,
+      profile_picture
+   )`,
+      { count: "exact" }
+    );
 
     // Apply search filter
     if (search) {
-      query = query.or(`owner_name.ilike.%${search}%,pharmacy_name.ilike.%${search}%,email.ilike.%${search}%,users.phone_number.ilike.%${search}%,registration_no.ilike.%${search}%`);
+      query = query.or(
+        `owner_name.ilike.%${search}%,pharmacy_name.ilike.%${search}%,email.ilike.%${search}%,users.phone_number.ilike.%${search}%,registration_no.ilike.%${search}%`
+      );
     }
 
     // Apply status filter
     if (status) {
-      if (status === 'active') {
-        query = query.eq('users.status', 1);
-      } else if (status === 'inactive') {
-        query = query.eq('users.status', 0);
+      if (status === "active") {
+        query = query.eq("users.status", 1);
+      } else if (status === "inactive") {
+        query = query.eq("users.status", 0);
       }
     }
 
     // Apply payout mode filter
     if (payout_mode) {
-      query = query.eq('payout_mode', payout_mode);
+      query = query.eq("payout_mode", payout_mode);
     }
 
     // Apply sorting
-    if (sortBy === 'name') {
-      query = query.order('owner_name', { ascending: sortOrder === 'asc' });
-    } else if (sortBy === 'pharmacy_name') {
-      query = query.order('pharmacy_name', { ascending: sortOrder === 'asc' });
-    } else if (sortBy === 'registration_no') {
-      query = query.order('registration_no', { ascending: sortOrder === 'asc' });
+    if (sortBy === "name") {
+      query = query.order("owner_name", { ascending: sortOrder === "asc" });
+    } else if (sortBy === "pharmacy_name") {
+      query = query.order("pharmacy_name", { ascending: sortOrder === "asc" });
+    } else if (sortBy === "registration_no") {
+      query = query.order("registration_no", {
+        ascending: sortOrder === "asc",
+      });
     } else {
-      query = query.order('created_at', { ascending: sortOrder === 'asc' });
+      query = query.order("created_at", { ascending: sortOrder === "asc" });
     }
 
     // Apply pagination
@@ -205,26 +228,33 @@ export async function GET(req) {
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
 
-    return success("Chemists fetched successfully.", {
-      data,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalItems: count,
-        itemsPerPage: limit,
-        hasNextPage,
-        hasPrevPage,
+    return success(
+      "Chemists fetched successfully.",
+      {
+        data,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalItems: count,
+          itemsPerPage: limit,
+          hasNextPage,
+          hasPrevPage,
+        },
+        filters: {
+          search,
+          status,
+          payout_mode,
+          sortBy,
+          sortOrder,
+        },
       },
-      filters: {
-        search,
-        status,
-        payout_mode,
-        sortBy,
-        sortOrder
-      }
-    }, 200, { headers: corsHeaders });
+      200,
+      { headers: corsHeaders }
+    );
   } catch (error) {
     console.error("Fetch Chemists Error:", error);
-    return failure("Failed to fetch chemists.", error.message, 500, { headers: corsHeaders });
+    return failure("Failed to fetch chemists.", error.message, 500, {
+      headers: corsHeaders,
+    });
   }
 }
