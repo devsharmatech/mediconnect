@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabaseAdmin";
 import { success, failure } from "@/lib/response";
 import { corsHeaders } from "@/lib/cors";
+import { buildInvoiceHtml } from "@/lib/buildInvoiceHtml";
 
 export async function OPTIONS() {
   return new Response("OK", { headers: corsHeaders });
@@ -16,29 +17,58 @@ export async function POST(req) {
       });
     }
 
-    /* ---------------------------------------
-       1️⃣ FETCH ORDER + VALIDATE
-    --------------------------------------- */
-    const { data: order, error } = await supabase
+    /* =====================================================
+       1️⃣ FETCH ORDER + FULL RELATIONS
+    ===================================================== */
+    const { data: order, error: orderErr } = await supabase
       .from("medicine_orders")
       .select(`
-        id, unid, status, total_amount, patient_id,
+        id,
+        unid,
+        status,
+        patient_id,
+
         chemist:chemist_id(
-          pharmacy_name, gst_number, address, phone
+          pharmacy_name,
+          owner_name,
+          mobile,
+          address,
+          gstin,
+          registration_no
         ),
+
         patient:patient_id(
           phone_number,
           patient_details(full_name, address)
         ),
+
+        prescription:prescription_id(
+          id,
+          unid,
+          created_at,
+          medicines,
+          investigations,
+          special_message,
+          doctor:doctor_id(
+            full_name,
+            specialization,
+            qualification,
+            clinic_name,
+            signature_url
+          )
+        ),
+
         medicine_order_items(
-          medicine_name, quantity, price
+          medicine_name,
+          quantity,
+          price
         )
       `)
       .eq("id", order_id)
       .eq("chemist_id", chemist_id)
       .single();
 
-    if (error || !order) {
+    if (orderErr || !order) {
       return failure("Order not found", null, 404, {
         headers: corsHeaders,
       });
@@ -53,90 +83,148 @@ export async function POST(req) {
       );
     }
 
-    /* ---------------------------------------
+    /* =====================================================
        2️⃣ CHECK EXISTING INVOICE
-    --------------------------------------- */
-    const { data: existing } = await supabase
+    ===================================================== */
+    let { data: invoice } = await supabase
       .from("medicine_order_invoices")
-      .select("id, invoice_number")
+      .select("*")
       .eq("order_id", order_id)
+      .eq("chemist_id", chemist_id)
       .maybeSingle();
 
-    if (existing) {
-      return success("Invoice already exists", existing, 200, {
-        headers: corsHeaders,
-      });
+    /* =====================================================
+       3️⃣ CREATE INVOICE IF NOT EXISTS
+    ===================================================== */
+    if (!invoice) {
+      const items = order.medicine_order_items.map((i) => ({
+        name: i.medicine_name,
+        quantity: i.quantity,
+        unit_price: Number(i.price || 0),
+        total: Number(i.price || 0) * Number(i.quantity || 1),
+      }));
+
+      const subtotal = items.reduce((s, i) => s + i.total, 0);
+      const taxAmount = 0;
+      const grandTotal = subtotal;
+
+      const today = new Date();
+      const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
+      const invoiceNumber = `INV-${chemist_id.slice(0, 4)}-${dateStr}-${order.unid}`;
+
+      const invoiceData = {
+        invoice: {
+          number: invoiceNumber,
+          date: today.toISOString().slice(0, 10),
+          order_unid: order.unid,
+          payment_mode: "UPI",
+        },
+
+        seller: {
+          pharmacy_name: order.chemist.pharmacy_name,
+          owner_name: order.chemist.owner_name,
+          mobile: order.chemist.mobile,
+          address: order.chemist.address,
+          gstin: order.chemist.gstin,
+          registration_no: order.chemist.registration_no,
+        },
+
+        buyer: {
+          name: order.patient.patient_details?.full_name || "",
+          phone: order.patient.phone_number,
+          address: order.patient.patient_details?.address || "",
+        },
+
+        doctor: order.prescription?.doctor || null,
+
+        prescription: {
+          id: order.prescription?.id,
+          unid: order.prescription?.unid,
+          created_at: order.prescription?.created_at,
+          medicines: order.prescription?.medicines || [],
+          investigations: order.prescription?.investigations || [],
+          special_message: order.prescription?.special_message,
+        },
+
+        items,
+
+        amounts: {
+          subtotal,
+          tax: taxAmount,
+          grand_total: grandTotal,
+        },
+      };
+
+      const { data: created, error: invErr } = await supabase
+        .from("medicine_order_invoices")
+        .insert({
+          order_id,
+          chemist_id,
+          patient_id: order.patient_id,
+          invoice_number: invoiceNumber,
+          subtotal,
+          tax_amount: taxAmount,
+          total_amount: grandTotal,
+          invoice_data: invoiceData,
+          status: "generated",
+        })
+        .select()
+        .single();
+
+      if (invErr) throw invErr;
+
+      invoice = created;
     }
 
-    /* ---------------------------------------
-       3️⃣ BUILD INVOICE DATA JSON
-    --------------------------------------- */
-    const items = order.medicine_order_items.map(i => ({
-      name: i.medicine_name,
-      quantity: i.quantity,
-      unit_price: i.price,
-      total: Number(i.price || 0) * Number(i.quantity || 1)
-    }));
+    /* =====================================================
+       4️⃣ GENERATE PDF IF NOT EXISTS
+    ===================================================== */
+    if (!invoice.download_url) {
+      const html = buildInvoiceHtml(invoice.invoice_data);
 
-    const subtotal = items.reduce((s, i) => s + i.total, 0);
-    const taxAmount = 0;
+      const pdfRes = await fetch(
+        "https://argosmob.uk/dhillon/public/api/v1/pdf/generate-pdf",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ html }),
+        }
+      );
 
-    const today = new Date();
-    const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
-    const invoiceNumber = `INV-${chemist_id.slice(0, 4)}-${dateStr}-${order.unid}`;
+      if (!pdfRes.ok) {
+        const errText = await pdfRes.text();
+        throw new Error(`PDF service error: ${errText}`);
+      }
 
-    const invoiceData = {
-      invoice_number: invoiceNumber,
-      invoice_date: today.toISOString().slice(0, 10),
+      const pdfJson = await pdfRes.json();
 
-      chemist: {
-        name: order.chemist.pharmacy_name,
-        gst_number: order.chemist.gst_number,
-        address: order.chemist.address,
-        phone: order.chemist.phone
-      },
+      if (!pdfJson?.url) {
+        throw new Error("PDF URL missing from service");
+      }
 
-      patient: {
-        name: order.patient.patient_details?.[0]?.full_name || "",
-        phone: order.patient.phone_number,
-        address: order.patient.patient_details?.[0]?.address || ""
-      },
+      const { data: updated } = await supabase
+        .from("medicine_order_invoices")
+        .update({
+          download_url: pdfJson.url,
+          status: "pdf_generated",
+        })
+        .eq("id", invoice.id)
+        .select()
+        .single();
 
-      items,
-      subtotal,
-      tax: taxAmount,
-      grand_total: subtotal + taxAmount,
-      payment_mode: "UPI",
-      order_id
-    };
+      invoice = updated;
+    }
 
-    /* ---------------------------------------
-       4️⃣ SAVE INVOICE
-    --------------------------------------- */
-    const { data: invoice, error: invErr } = await supabase
-      .from("medicine_order_invoices")
-      .insert({
-        order_id,
-        chemist_id,
-        patient_id: order.patient_id,
-        invoice_number: invoiceNumber,
-        subtotal,
-        tax_amount: taxAmount,
-        total_amount: subtotal + taxAmount,
-        invoice_data: invoiceData
-      })
-      .select()
-      .single();
-
-    if (invErr) throw invErr;
-
-    return success("E-invoice generated successfully", invoice, 200, {
+    /* =====================================================
+       5️⃣ FINAL RESPONSE (ALWAYS SAME)
+    ===================================================== */
+    return success("E-invoice ready", invoice, 200, {
       headers: corsHeaders,
     });
 
   } catch (err) {
-    console.error("Invoice generation error:", err);
-    return failure("Failed to generate invoice", err.message, 500, {
+    console.error("Invoice API error:", err);
+    return failure("Failed to process invoice", err.message, 500, {
       headers: corsHeaders,
     });
   }

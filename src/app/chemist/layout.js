@@ -79,7 +79,7 @@ export default function ChemistLayout({ children }) {
         <main className="flex-1 p-4 md:p-6">{children}</main>
       </div>
 
-      {!pathname.includes("/login") && (
+      {/* {!pathname.includes("/login") && (
         <Toaster
           position="top-right"
           toastOptions={{
@@ -91,7 +91,7 @@ export default function ChemistLayout({ children }) {
             },
           }}
         />
-      )}
+      )} */}
     </div>
   );
 }
