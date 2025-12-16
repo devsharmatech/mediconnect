@@ -14,16 +14,46 @@ export async function POST(req) {
       return failure("item_id and status required", null, 400, { headers: corsHeaders });
     }
 
-    const { data, error } = await supabase
+    if (price !== undefined && price < 0) {
+      return failure("Invalid price", null, 422, { headers: corsHeaders });
+    }
+
+    // 1️⃣ Update item
+    const { data: item, error } = await supabase
       .from("medicine_order_items")
       .update({ status, price, quantity })
       .eq("id", item_id)
-      .select()
-      .maybeSingle();
+      .select("order_id")
+      .single();
 
     if (error) throw error;
 
-    return success("Order item updated", data, 200, { headers: corsHeaders });
+    // 2️⃣ Recalculate order total (ONLY approved items)
+    const { data: items } = await supabase
+      .from("medicine_order_items")
+      .select("price, quantity")
+      .eq("order_id", item.order_id)
+      .eq("status", "approved");
+
+    const totalAmount = items.reduce(
+      (sum, i) => sum + (Number(i.price || 0) * Number(i.quantity || 1)),
+      0
+    );
+
+    // 3️⃣ Update order total
+    await supabase
+      .from("medicine_orders")
+      .update({
+        total_amount: totalAmount,
+        updated_at: new Date()
+      })
+      .eq("id", item.order_id);
+
+    return success("Item updated & order recalculated", {
+      order_id: item.order_id,
+      total_amount: totalAmount
+    }, 200, { headers: corsHeaders });
+
   } catch (err) {
     return failure("Error updating item", err.message, 500, { headers: corsHeaders });
   }

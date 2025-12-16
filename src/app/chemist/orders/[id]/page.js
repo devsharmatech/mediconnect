@@ -920,70 +920,7 @@ export default function OrderDetailsPage() {
                   </div>
                 )}
 
-                {/* Lab Tests & Investigations */}
-                {(order.prescription.lab_tests ||
-                  order.prescription.investigations) && (
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center">
-                      <Microscope className="w-5 h-5 mr-2 text-purple-500" />
-                      Recommended Tests
-                    </h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Lab Tests */}
-                      {order.prescription?.lab_tests &&
-                        order.prescription.lab_tests.length > 0 && (
-                          <div className="bg-gradient-to-r from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4">
-                            <h4 className="font-semibold text-purple-800 dark:text-purple-400 mb-2">
-                              Lab Tests
-                            </h4>
-                            <div className="space-y-1">
-                              {order.prescription.lab_tests.map(
-                                (test, index) => (
-                                  <div
-                                    key={index}
-                                    className="flex items-center space-x-2"
-                                  >
-                                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
-                                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                                      {/* Access the name property since lab_tests is array of objects */}
-                                      {test.name || test}
-                                    </span>
-                                  </div>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                      {/* Investigations */}
-                      {order.prescription?.investigations &&
-                        order.prescription.investigations.length > 0 && (
-                          <div className="bg-gradient-to-r from-cyan-50 to-cyan-100/50 dark:from-cyan-900/20 dark:to-cyan-800/20 rounded-xl p-4">
-                            <h4 className="font-semibold text-cyan-800 dark:text-cyan-400 mb-2">
-                              Investigations
-                            </h4>
-                            <div className="space-y-1">
-                              {order.prescription.investigations.map(
-                                (investigation, index) => (
-                                  <div
-                                    key={index}
-                                    className="flex items-center space-x-2"
-                                  >
-                                    <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></div>
-                                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                                      {/* Investigations appears to be array of strings in your API */}
-                                      {investigation}
-                                    </span>
-                                  </div>
-                                )
-                              )}
-                            </div>
-                          </div>
-                        )}
-                    </div>
-                  </div>
-                )}
+              
 
                 {/* Prescription Meta */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

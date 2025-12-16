@@ -171,32 +171,36 @@ export async function GET(req) {
     // Build query
     let query = supabase.from("chemist_details").select(
       `*,
-   users!chemist_details_id_fkey (
-      id,
-      un_id,
-      phone_number,
-      role,
-      status,
-      created_at,
-      profile_picture
-   )`,
+     users!chemist_details_id_fkey(
+        id,
+        un_id,
+        phone_number,
+        role,
+        status,
+        created_at,
+        profile_picture
+     )`,
       { count: "exact" }
     );
 
-    // Apply search filter
+    // --- SEARCH LOGIC ---
     if (search) {
       query = query.or(
-        `owner_name.ilike.%${search}%,pharmacy_name.ilike.%${search}%,email.ilike.%${search}%,users.phone_number.ilike.%${search}%,registration_no.ilike.%${search}%`
+        `owner_name.ilike.%${search}%,pharmacy_name.ilike.%${search}%,email.ilike.%${search}%,registration_no.ilike.%${search}%`
       );
+
+      // query = query.ilike(
+      //   `users!chemist_details_id_fkey.phone_number`,
+      //   `%${search}%`
+      // );
     }
 
-    // Apply status filter
+    // --- STATUS FILTER ---
     if (status) {
-      if (status === "active") {
-        query = query.eq("users.status", 1);
-      } else if (status === "inactive") {
-        query = query.eq("users.status", 0);
-      }
+      query = query.eq(
+        `users!chemist_details_id_fkey.status`,
+        status === "active" ? 1 : 0
+      );
     }
 
     // Apply payout mode filter
