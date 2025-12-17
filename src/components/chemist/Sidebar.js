@@ -32,7 +32,8 @@ export default function ChemistSidebar({ open, mobileOpen, onToggle, onCloseMobi
 
   useEffect(() => {
     const user = getLoggedInUser("chemist");
-    if (user?.name) setChemistName(user.name);
+   
+    if (user?.details?.pharmacist_name) setChemistName(user?.details?.pharmacist_name);
   }, []);
 
   const menuItems = [
@@ -119,7 +120,7 @@ export default function ChemistSidebar({ open, mobileOpen, onToggle, onCloseMobi
             </div>
             <div className="flex flex-col min-w-0">
               <h2 className="text-lg font-bold text-blue-700 dark:text-blue-400 truncate">
-                Chemist Portal
+                Chemist Panel
               </h2>
               <p className="text-xs text-blue-600 dark:text-blue-500 truncate">
                 Professional Access

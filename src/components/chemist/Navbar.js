@@ -76,7 +76,7 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
 
   useEffect(() => {
     const user = getLoggedInUser("chemist");
-    if (user?.name) setChemistName(user.name);
+    if (user?.details?.pharmacist_name) setChemistName(user?.details?.pharmacist_name);
 
     const storedTheme = localStorage.getItem("theme") || "light";
     setTheme(storedTheme);
