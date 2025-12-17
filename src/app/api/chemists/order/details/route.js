@@ -112,7 +112,6 @@ export async function POST(req) {
         payment_method,
         payment_proof_url,
         status,
-        notes,
         created_at
       `)
       .eq("order_id", order_id)
