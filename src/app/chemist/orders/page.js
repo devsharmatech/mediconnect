@@ -74,7 +74,7 @@ export default function OrdersPage() {
   const fetchOrders = async (page = 1) => {
     try {
       setLoading(true);
-      const res = await fetch("/api/chemists/order/medicine/get", {
+      const res = await fetch("/api/chemists/order/get-orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
