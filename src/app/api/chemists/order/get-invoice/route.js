@@ -44,7 +44,7 @@ export async function POST(req) {
       .single();
 
     if (error || !invoice) {
-      return failure("Invoice not found", null, 404, {
+      return failure("Invoice not found", error, 404, {
         headers: corsHeaders,
       });
     }

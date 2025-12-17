@@ -328,7 +328,7 @@ export default function OrderDetailsPage() {
   const checkAndGenerateInvoice = async () => {
     try {
       // First check if invoice already exists
-      const checkRes = await fetch("/api/chemists/order/check-invoice", {
+      const checkRes = await fetch("/api/chemists/order/get-invoice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
