@@ -26,213 +26,14 @@ import {
   ExternalLink,
   Eye,
   ChevronRight,
-  Sparkles,
-  Zap,
-  MessageSquare,
-  ShoppingCart,
-  TrendingUp,
-  Award,
-  Star,
-  Heart,
-  Info,
-  Shield,
-  CreditCard,
-  FileText,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { generateDeviceToken, onForegroundMessage } from "@/lib/firebaseClient";
 import toast, { Toaster } from "react-hot-toast";
 
-// Custom Toast Notification Component
-function CustomNotificationToast({ notification, onClose, onClick }) {
-  const router = useRouter();
-  
-  const getIcon = () => {
-    switch (notification.type) {
-      case "order":
-        return <ShoppingCart className="w-8 h-8 text-white" />;
-      case "payment":
-        return <CreditCard className="w-8 h-8 text-white" />;
-      case "stock":
-      case "inventory":
-        return <AlertCircle className="w-8 h-8 text-white" />;
-      case "prescription":
-        return <Pill className="w-8 h-8 text-white" />;
-      case "report":
-        return <TrendingUp className="w-8 h-8 text-white" />;
-      case "success":
-        return <Award className="w-8 h-8 text-white" />;
-      case "important":
-        return <Star className="w-8 h-8 text-white" />;
-      case "urgent":
-        return <Zap className="w-8 h-8 text-white" />;
-      case "info":
-        return <Info className="w-8 h-8 text-white" />;
-      case "security":
-        return <Shield className="w-8 h-8 text-white" />;
-      default:
-        return <Bell className="w-8 h-8 text-white" />;
-    }
-  };
-
-  const getGradient = () => {
-    switch (notification.type) {
-      case "order":
-        return "from-blue-500 via-blue-600 to-blue-700";
-      case "payment":
-        return "from-green-500 via-green-600 to-green-700";
-      case "stock":
-      case "inventory":
-        return "from-amber-500 via-amber-600 to-amber-700";
-      case "prescription":
-        return "from-emerald-500 via-emerald-600 to-emerald-700";
-      case "report":
-        return "from-purple-500 via-purple-600 to-purple-700";
-      case "success":
-        return "from-teal-500 via-teal-600 to-teal-700";
-      case "important":
-        return "from-orange-500 via-orange-600 to-orange-700";
-      case "urgent":
-        return "from-red-500 via-red-600 to-red-700";
-      case "info":
-        return "from-cyan-500 via-cyan-600 to-cyan-700";
-      case "security":
-        return "from-violet-500 via-violet-600 to-violet-700";
-      default:
-        return "from-indigo-500 via-indigo-600 to-indigo-700";
-    }
-  };
-
-  const getTypeLabel = () => {
-    switch (notification.type) {
-      case "order": return "New Order";
-      case "payment": return "Payment";
-      case "stock": return "Stock Alert";
-      case "inventory": return "Inventory";
-      case "prescription": return "Prescription";
-      case "report": return "Report";
-      case "success": return "Success";
-      case "important": return "Important";
-      case "urgent": return "Urgent";
-      case "info": return "Information";
-      case "security": return "Security";
-      default: return "Notification";
-    }
-  };
-
-  const handleViewDetails = () => {
-    if (notification.action_url) {
-      router.push(notification.action_url);
-    } else {
-      switch (notification.type) {
-        case "order":
-        case "payment":
-          router.push("/chemist/orders");
-          break;
-        case "stock":
-        case "inventory":
-          router.push("/chemist/inventory");
-          break;
-        case "prescription":
-          router.push("/chemist/prescriptions");
-          break;
-        case "report":
-          router.push("/chemist/reports");
-          break;
-      }
-    }
-    onClose();
-  };
-
-  return (
-    <div className="w-full max-w-md bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden cursor-pointer transform transition-all duration-500 hover:scale-[1.02] hover:shadow-3xl backdrop-blur-sm">
-      {/* Animated border */}
-      <div className="h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-[pulse_2s_ease-in-out_infinite]" />
-      
-      {/* Main content */}
-      <div className="p-5">
-        <div className="flex items-start space-x-4">
-          {/* Icon with glow effect */}
-          <div className="relative">
-            <div className={`absolute inset-0 bg-gradient-to-br ${getGradient()} opacity-20 blur-xl rounded-full`} />
-            <div className={`relative bg-gradient-to-br ${getGradient()} p-3 rounded-xl shadow-lg`}>
-              {getIcon()}
-            </div>
-          </div>
-          
-          {/* Text content */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <span className="text-lg font-bold text-gray-900 dark:text-white">
-                  {notification.title || getTypeLabel()}
-                </span>
-                <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                  notification.priority === "high" 
-                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" 
-                    : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                }`}>
-                  {notification.priority === "high" ? "HIGH PRIORITY" : "STANDARD"}
-                </span>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClose();
-                }}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-              >
-                <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              </button>
-            </div>
-            
-            <p className="text-gray-700 dark:text-gray-300 mb-3">
-              {notification.body || notification.message}
-            </p>
-            
-            {/* Metadata */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                  <Clock className="w-3 h-3 mr-1" />
-                  Just now
-                </span>
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 dark:from-blue-900/30 dark:to-blue-800/30 dark:text-blue-400">
-                  {getTypeLabel()}
-                </span>
-              </div>
-              <Sparkles className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Action buttons */}
-      <div className="px-5 pb-5">
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={handleViewDetails}
-            className="flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-xl transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5"
-          >
-            <ExternalLink className="w-4 h-4" />
-            <span>View Details</span>
-          </button>
-          <button
-            onClick={onClose}
-            className="flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300 font-medium rounded-xl transition-all duration-300"
-          >
-            <Check className="w-4 h-4" />
-            <span>Dismiss</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // Notification Modal Component
-function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
+function NotificationsModal({ isOpen, onClose }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingAction, setLoadingAction] = useState(null);
@@ -327,8 +128,6 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
             notif.id === notificationId ? { ...notif, read: true } : notif
           )
         );
-        // Notify parent component
-        onNotificationUpdate?.();
       }
     } catch (error) {
       console.error("Error marking as read:", error);
@@ -359,9 +158,6 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
           prev.map((notif) => ({ ...notif, read: true }))
         );
         setFilter("all");
-        // Notify parent component
-        onNotificationUpdate?.();
-        toast.success("All notifications marked as read");
       }
     } catch (error) {
       console.error("Error marking all as read:", error);
@@ -370,7 +166,7 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
     }
   };
 
-  // Delete notification - FIXED VERSION
+  // Delete notification
   const deleteNotification = async (notificationId) => {
     try {
       setLoadingAction(`delete-${notificationId}`);
@@ -392,15 +188,9 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
           prev.filter((notif) => notif.id !== notificationId)
         );
         setTotalNotifications((prev) => prev - 1);
-        // Notify parent component
-        onNotificationUpdate?.();
-        toast.success("Notification deleted successfully");
-      } else {
-        toast.error(data.message || "Failed to delete notification");
       }
     } catch (error) {
       console.error("Error deleting notification:", error);
-      toast.error("Failed to delete notification");
     } finally {
       setLoadingAction(null);
     }
@@ -428,9 +218,6 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
       if (data.success) {
         setNotifications([]);
         setTotalNotifications(0);
-        // Notify parent component
-        onNotificationUpdate?.();
-        toast.success("All notifications cleared");
       }
     } catch (error) {
       console.error("Error clearing all notifications:", error);
@@ -473,28 +260,21 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
   const getNotificationIcon = (type) => {
     switch (type) {
       case "order":
-        return <ShoppingCart className="w-5 h-5 text-blue-600 dark:text-blue-400" />;
       case "payment":
-        return <CreditCard className="w-5 h-5 text-green-600 dark:text-green-400" />;
+        return <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
       case "stock":
       case "inventory":
         return (
-          <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+          <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
         );
       case "prescription":
-        return <Pill className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />;
+        return <Pill className="w-4 h-4 text-green-600 dark:text-green-400" />;
       case "report":
         return (
-          <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          <Beaker className="w-4 h-4 text-purple-600 dark:text-purple-400" />
         );
-      case "success":
-        return <Award className="w-5 h-5 text-teal-600 dark:text-teal-400" />;
-      case "important":
-        return <Star className="w-5 h-5 text-orange-600 dark:text-orange-400" />;
-      case "urgent":
-        return <Zap className="w-5 h-5 text-red-600 dark:text-red-400" />;
       default:
-        return <Bell className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />;
+        return <Bell className="w-4 h-4 text-gray-600 dark:text-gray-400" />;
     }
   };
 
@@ -584,7 +364,7 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
               <button
                 onClick={markAllAsRead}
                 disabled={loadingAction === "all"}
-                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl transition-all duration-200 disabled:opacity-50 shadow-lg"
+                className="flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl transition-colors disabled:opacity-50"
               >
                 {loadingAction === "all" ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -652,12 +432,6 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
                   Orders
                 </option>
                 <option
-                  value="payment"
-                  className="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
-                >
-                  Payments
-                </option>
-                <option
                   value="stock"
                   className="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
                 >
@@ -675,6 +449,12 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
                 >
                   Reports
                 </option>
+                <option
+                  value="payment"
+                  className="bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+                >
+                  Payments
+                </option>
               </select>
             </div>
           </div>
@@ -684,20 +464,11 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
         <div ref={listRef} className="h-[500px] overflow-y-auto">
           {loading && notifications.length === 0 ? (
             <div className="flex items-center justify-center h-64">
-              <div className="text-center">
-                <div className="relative inline-block">
-                  <Bell className="w-16 h-16 text-blue-500 dark:text-blue-400 animate-bounce mb-4" />
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full animate-ping"></div>
-                </div>
-                <p className="text-gray-600 dark:text-gray-400">Loading notifications...</p>
-              </div>
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500 dark:text-blue-400" />
             </div>
           ) : notifications.length === 0 ? (
             <div className="text-center py-16">
-              <div className="relative inline-block mb-4">
-                <Bell className="w-20 h-20 text-gray-400 dark:text-gray-500" />
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 opacity-10 blur-xl rounded-full"></div>
-              </div>
+              <Bell className="w-16 h-16 mx-auto text-gray-400 dark:text-gray-500 mb-4" />
               <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">
                 No notifications found
               </h3>
@@ -706,31 +477,22 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
                   ? "Try changing your filters"
                   : "You're all caught up!"}
               </p>
-              {filter === "all" && typeFilter === "all" && (
-                <div className="mt-4 inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-gray-800 dark:to-gray-900 rounded-full">
-                  <Heart className="w-4 h-4 text-blue-500 mr-2" />
-                  <span className="text-sm text-blue-600 dark:text-blue-400">All clear!</span>
-                </div>
-              )}
             </div>
           ) : (
             <div className="divide-y divide-blue-100 dark:divide-gray-700">
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-4 hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer transition-all duration-300 group ${
+                  className={`p-4 hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer transition-colors group ${
                     !notification.read
-                      ? "bg-gradient-to-r from-blue-50/50 to-blue-100/30 dark:from-blue-900/10 dark:to-blue-900/5 border-l-4 border-blue-500"
+                      ? "bg-blue-50/50 dark:bg-blue-900/10"
                       : ""
                   }`}
                   onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex items-start space-x-4">
-                    <div className="relative mt-1">
+                    <div className="mt-1">
                       {getNotificationIcon(notification.type)}
-                      {!notification.read && (
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
@@ -746,8 +508,7 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
                               {formatTime(notification.created_at)}
                             </span>
                             {!notification.read && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 dark:from-blue-900 dark:to-blue-800 dark:text-blue-300">
-                                <Zap className="w-3 h-3 mr-1" />
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
                                 Unread
                               </span>
                             )}
@@ -756,7 +517,7 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           {!notification.read && (
                             <button
                               onClick={(e) => {
@@ -764,7 +525,7 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
                                 markAsRead(notification.id);
                               }}
                               disabled={loadingAction === notification.id}
-                              className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/20 text-gray-700 dark:text-gray-300 transition-all duration-200 hover:scale-110"
+                              className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/20 text-gray-700 dark:text-gray-300"
                               title="Mark as read"
                             >
                               {loadingAction === notification.id ? (
@@ -782,7 +543,7 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
                             disabled={
                               loadingAction === `delete-${notification.id}`
                             }
-                            className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-700 dark:text-gray-300 transition-all duration-200 hover:scale-110"
+                            className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-700 dark:text-gray-300"
                             title="Delete"
                           >
                             {loadingAction === `delete-${notification.id}` ? (
@@ -804,16 +565,9 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
                   <button
                     onClick={loadMore}
                     disabled={loading}
-                    className="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50 transition-all duration-200 hover:scale-105"
+                    className="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50"
                   >
-                    {loading ? (
-                      <span className="flex items-center">
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                        Loading...
-                      </span>
-                    ) : (
-                      "Load More Notifications"
-                    )}
+                    {loading ? "Loading..." : "Load More Notifications"}
                   </button>
                 </div>
               )}
@@ -829,7 +583,7 @@ function NotificationsModal({ isOpen, onClose, onNotificationUpdate }) {
               disabled={
                 notifications.length === 0 || loadingAction === "clear-all"
               }
-              className="flex items-center space-x-2 px-4 py-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 disabled:opacity-50 transition-all duration-200 hover:scale-105"
+              className="flex items-center space-x-2 px-4 py-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 disabled:opacity-50"
             >
               {loadingAction === "clear-all" ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -861,7 +615,6 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
   const [loading, setLoading] = useState(true);
   const [loadingAction, setLoadingAction] = useState(null);
   const [showAllModal, setShowAllModal] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
   const notificationsRef = useRef(null);
   const profileRef = useRef(null);
   const pathname = usePathname();
@@ -876,47 +629,18 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
     logoutUser("chemist");
     router.push("/chemist/login");
   };
-
-  // Show custom notification toast
-  const showCustomNotification = useCallback((notification) => {
-    toast.custom(
-      (t) => (
-        <CustomNotificationToast
-          notification={notification}
-          onClose={() => toast.dismiss(t.id)}
-          onClick={() => {
-            // Handle click to navigate
-            if (notification.action_url) {
-              router.push(notification.action_url);
-            } else {
-              switch (notification.type) {
-                case "order":
-                case "payment":
-                  router.push("/chemist/orders");
-                  break;
-                case "stock":
-                case "inventory":
-                  router.push("/chemist/inventory");
-                  break;
-                case "prescription":
-                  router.push("/chemist/prescriptions");
-                  break;
-                case "report":
-                  router.push("/chemist/reports");
-                  break;
-              }
-            }
-            toast.dismiss(t.id);
-            fetchNotificationCount();
-          }}
-        />
-      ),
-      {
-        duration: 8000,
-        position: "top-right",
-      }
-    );
-  }, [router]);
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/firebase-messaging-sw.js")
+        .then((registration) => {
+          console.log("Service Worker registered:", registration);
+        })
+        .catch((err) => {
+          console.error("Service Worker registration failed:", err);
+        });
+    }
+  }, []);
 
   // Fetch unread count and recent notifications
   const fetchNotificationCount = useCallback(async () => {
@@ -933,17 +657,7 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
       const countData = await countResponse.json();
 
       if (countData.success) {
-        const newUnreadCount = countData.unread_count || 0;
-        // If unread count increased, show notification badge animation
-        if (newUnreadCount > unreadCount && unreadCount > 0) {
-          // Trigger bell animation
-          const bellBtn = document.querySelector('[data-bell-button]');
-          if (bellBtn) {
-            bellBtn.classList.add('animate-shake');
-            setTimeout(() => bellBtn.classList.remove('animate-shake'), 500);
-          }
-        }
-        setUnreadCount(newUnreadCount);
+        setUnreadCount(countData.unread_count || 0);
       }
 
       // Get recent notifications (5 most recent)
@@ -960,50 +674,7 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
     } finally {
       setLoading(false);
     }
-  }, [unreadCount]);
-
-  // Delete notification from dropdown - FIXED VERSION
-  const deleteNotification = useCallback(async (notificationId) => {
-    try {
-      setLoadingAction(`delete-dropdown-${notificationId}`);
-      const chemist = getChemist();
-
-      const response = await fetch("/api/chemists/notifications/delete", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_id: chemist.id,
-          notification_id: notificationId,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Remove from local state
-        setRecentNotifications((prev) =>
-          prev.filter((notif) => notif.id !== notificationId)
-        );
-        
-        // Update unread count if notification was unread
-        const deletedNotification = recentNotifications.find(n => n.id === notificationId);
-        if (deletedNotification && !deletedNotification.read) {
-          setUnreadCount((prev) => Math.max(0, prev - 1));
-        }
-        
-        toast.success("Notification deleted");
-      } else {
-        toast.error(data.message || "Failed to delete notification");
-      }
-    } catch (error) {
-      console.error("Error deleting notification:", error);
-      toast.error("Failed to delete notification");
-    } finally {
-      setLoadingAction(null);
-    }
-  }, [recentNotifications]);
+  }, []);
 
   // Mark all as read from dropdown
   const markAllAsRead = async () => {
@@ -1029,7 +700,6 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
         setRecentNotifications((prev) =>
           prev.map((notif) => ({ ...notif, read: true }))
         );
-        toast.success("All notifications marked as read");
       }
     } catch (error) {
       console.error("Error marking all as read:", error);
@@ -1077,19 +747,18 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
   const getNotificationIcon = (type) => {
     switch (type) {
       case "order":
-        return <ShoppingCart className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
       case "payment":
-        return <CreditCard className="w-4 h-4 text-green-600 dark:text-green-400" />;
+        return <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
       case "stock":
       case "inventory":
         return (
           <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
         );
       case "prescription":
-        return <Pill className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />;
+        return <Pill className="w-4 h-4 text-green-600 dark:text-green-400" />;
       case "report":
         return (
-          <TrendingUp className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+          <Beaker className="w-4 h-4 text-purple-600 dark:text-purple-400" />
         );
       default:
         return <Bell className="w-4 h-4 text-gray-600 dark:text-gray-400" />;
@@ -1116,88 +785,6 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
     return date.toLocaleDateString();
   };
 
-  // Initialize FCM and setup listeners
-  const initializeFCM = useCallback(async () => {
-    try {
-      const chemist = getChemist();
-      if (!chemist?.id) return;
-
-      console.log("Initializing FCM...");
-
-      // Register service worker
-      if ("serviceWorker" in navigator) {
-        const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-        console.log("Service Worker registered:", registration);
-        setIsConnected(true);
-      }
-
-      // Get FCM token
-      const token = await generateDeviceToken();
-      if (token) {
-        console.log("FCM Token generated:", token.substring(0, 20) + "...");
-        
-        // Save token to backend
-        const saveResponse = await fetch("/api/save-fcm-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_id: chemist.id,
-            fcm_token: token,
-            platform: "web",
-          }),
-        });
-        
-        if (saveResponse.ok) {
-          console.log("FCM Token saved successfully");
-        } else {
-          console.error("Failed to save FCM token");
-        }
-      }
-
-      // Listen for foreground messages
-      onForegroundMessage((payload) => {
-        console.log("📱 Foreground FCM message received:", payload);
-        
-        // Create clear notification object
-        const notificationData = {
-          title: payload.notification?.title || "New Notification",
-          body: payload.notification?.body || "You have a new notification",
-          type: payload.data?.type || payload.notification?.title?.toLowerCase() || "info",
-          priority: payload.data?.priority || "normal",
-          message: payload.notification?.body || payload.data?.message,
-          action_url: payload.data?.action_url,
-          data: payload.data || {},
-        };
-
-        console.log("Processed notification:", notificationData);
-
-        // Show custom notification toast
-        showCustomNotification(notificationData);
-
-        // Refresh notification count
-        fetchNotificationCount();
-
-        // Play notification sound
-        if (typeof Audio !== 'undefined') {
-          try {
-            const audio = new Audio('/notification.mp3');
-            audio.volume = 0.3;
-            audio.play().catch(e => console.log("Audio play failed:", e));
-          } catch (audioError) {
-            console.log("Audio initialization error:", audioError);
-          }
-        }
-      });
-
-      console.log("FCM initialization complete");
-
-    } catch (error) {
-      console.error("❌ Error initializing FCM:", error);
-      setIsConnected(false);
-      toast.error("Failed to connect to notification service");
-    }
-  }, [fetchNotificationCount, showCustomNotification]);
-
   // Initialize
   useEffect(() => {
     const chemist = getChemist();
@@ -1215,9 +802,6 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
       fetchNotificationCount();
     }
 
-    // Initialize FCM
-    initializeFCM();
-
     const handleClickOutside = (event) => {
       if (
         notificationsRef.current &&
@@ -1234,7 +818,7 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [fetchNotificationCount, initializeFCM]);
+  }, [fetchNotificationCount]);
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
@@ -1255,40 +839,39 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
     return "Chemist Portal";
   };
 
-  // Setup WebSocket/SSE for real-time notifications
-  useEffect(() => {
-    const chemist = getChemist();
-    if (!chemist?.id) return;
+  const initializeFCM = async () => {
+    try {
+      const chemist = getChemist();
+      if (!chemist?.id) return;
+      async function initPush() {
+        const token = await generateDeviceToken();
+        if (!token) return;
 
-    // Polling mechanism as fallback
-    const pollingInterval = setInterval(() => {
-      fetchNotificationCount();
-    }, 30000); // Poll every 30 seconds
+        await fetch("/api/save-fcm-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: chemist.id,
+            fcm_token: token,
+          }),
+        });
+      }
 
-    return () => clearInterval(pollingInterval);
-  }, [fetchNotificationCount]);
+      initPush();
 
-  // Handle notification updates from modal
-  const handleNotificationUpdate = () => {
-    fetchNotificationCount();
+      onForegroundMessage((payload) => {
+        toast.success(payload.notification?.title || "New notification");
+      });
+    } catch (error) {
+      console.error("Error initializing FCM:", error);
+    }
   };
 
+  useEffect(() => {
+    initializeFCM();
+  }, []);
   return (
     <>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 8000,
-          style: {
-            background: 'bg-gradient-to-r from-blue-50 to-white dark:from-gray-800 dark:to-gray-900',
-            padding: 0,
-            boxShadow: 'none',
-            borderRadius: '0',
-            maxWidth: '450px',
-          },
-        }}
-      />
-      
       <header className="sticky top-0 z-20 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-blue-200 dark:border-gray-700 px-4 lg:px-6 py-4 shadow-sm shadow-blue-100/50 dark:shadow-gray-900 flex-shrink-0">
         <div className="flex items-center justify-between">
           {/* Left Section - Menu Button & Title */}
@@ -1346,43 +929,23 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
               {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
             </button>
 
-            {/* Connection Status */}
-            {isConnected && (
-              <div className="relative group hidden lg:block">
-                <div className="flex items-center space-x-1 px-2 py-1 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs text-green-700 dark:text-green-400 font-medium">
-                    Live
-                  </span>
-                </div>
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                  Connected to real-time notifications
-                </div>
-              </div>
-            )}
-
             {/* Notifications Dropdown */}
             <div className="relative" ref={notificationsRef}>
               <button
-                data-bell-button
                 onClick={() => {
                   setNotificationsOpen(!notificationsOpen);
                   if (!notificationsOpen) {
                     fetchNotificationCount();
                   }
                 }}
-                className="relative p-2.5 rounded-xl bg-blue-100 dark:bg-gray-800 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-gray-700 transition-all duration-200 cursor-pointer group"
+                className="relative p-2.5 rounded-xl bg-blue-100 dark:bg-gray-800 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-gray-700 transition-all duration-200 cursor-pointer"
               >
                 <Bell size={20} />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full flex items-center justify-center font-semibold animate-pulse shadow-lg">
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-semibold animate-pulse">
                     {unreadCount}
                   </span>
                 )}
-                {/* Hover tooltip */}
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                  {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
-                </div>
               </button>
 
               {notificationsOpen && (
@@ -1394,7 +957,7 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
                           Recent Notifications
                         </h3>
                         <p className="text-sm text-blue-600 dark:text-blue-400">
-                          {unreadCount} unread • {recentNotifications.length} recent
+                          {unreadCount} unread notifications
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -1424,9 +987,9 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
                             <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
                           )}
                         </button>
-                        <div className="px-3 py-1 bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 rounded-full">
+                        <div className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full">
                           <span className="text-xs font-medium text-blue-700 dark:text-blue-400">
-                            Live
+                            Pharmacy
                           </span>
                         </div>
                       </div>
@@ -1436,10 +999,7 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
                   <div className="max-h-96 overflow-y-auto">
                     {loading && recentNotifications.length === 0 ? (
                       <div className="flex items-center justify-center p-8">
-                        <div className="text-center">
-                          <Loader2 className="w-8 h-8 animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-3" />
-                          <p className="text-gray-600 dark:text-gray-400">Loading notifications...</p>
-                        </div>
+                        <Loader2 className="w-6 h-6 animate-spin text-blue-500 dark:text-blue-400" />
                       </div>
                     ) : recentNotifications.length === 0 ? (
                       <div className="text-center p-8">
@@ -1459,18 +1019,15 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
                             onClick={() =>
                               handleNotificationClick(notification)
                             }
-                            className={`p-4 border-b border-blue-100 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer transition-all duration-300 group relative ${
+                            className={`p-4 border-b border-blue-100 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-800 cursor-pointer transition-colors group relative ${
                               !notification.read
-                                ? "bg-gradient-to-r from-blue-50/70 to-blue-100/30 dark:from-blue-900/20 dark:to-blue-900/10"
+                                ? "bg-blue-50/70 dark:bg-blue-900/20"
                                 : ""
                             }`}
                           >
                             <div className="flex items-start space-x-3">
-                              <div className="mt-0.5 relative">
+                              <div className="mt-0.5">
                                 {getNotificationIcon(notification.type)}
-                                {!notification.read && (
-                                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                                )}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm text-gray-800 dark:text-gray-200 font-medium truncate">
@@ -1484,17 +1041,17 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
                                 </p>
                               </div>
                               {!notification.read && (
-                                <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full mt-1 flex-shrink-0 animate-pulse"></div>
+                                <div className="w-2 h-2 bg-blue-500 rounded-full mt-1 flex-shrink-0"></div>
                               )}
                             </div>
 
-                            {/* Hover actions - FIXED DELETE FUNCTION */}
-                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex space-x-1">
+                            {/* Hover actions - Fixed dark mode visibility */}
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
                               {!notification.read && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    // Optimistically update UI
+                                    // Simulate mark as read
                                     setRecentNotifications((prev) =>
                                       prev.map((n) =>
                                         n.id === notification.id
@@ -1505,10 +1062,8 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
                                     setUnreadCount((prev) =>
                                       Math.max(0, prev - 1)
                                     );
-                                    // Call API
-                                    markAsRead(notification.id);
                                   }}
-                                  className="p-1.5 rounded-full hover:bg-green-100 dark:hover:bg-green-900/20 text-gray-700 dark:text-gray-300 transition-all duration-200 hover:scale-110"
+                                  className="p-1.5 rounded-full hover:bg-green-100 dark:hover:bg-green-900/20 text-gray-700 dark:text-gray-300"
                                   title="Mark as read"
                                 >
                                   <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
@@ -1517,30 +1072,17 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  // Optimistically remove from UI
+                                  // Simulate delete
                                   setRecentNotifications((prev) =>
                                     prev.filter(
                                       (notif) => notif.id !== notification.id
                                     )
                                   );
-                                  // Update unread count if needed
-                                  if (!notification.read) {
-                                    setUnreadCount((prev) =>
-                                      Math.max(0, prev - 1)
-                                    );
-                                  }
-                                  // Call API
-                                  deleteNotification(notification.id);
                                 }}
-                                disabled={loadingAction === `delete-dropdown-${notification.id}`}
-                                className="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-700 dark:text-gray-300 transition-all duration-200 hover:scale-110"
+                                className="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-700 dark:text-gray-300"
                                 title="Delete"
                               >
-                                {loadingAction === `delete-dropdown-${notification.id}` ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-                                )}
+                                <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
                               </button>
                             </div>
                           </div>
@@ -1554,16 +1096,10 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
                         setNotificationsOpen(false);
                         setShowAllModal(true);
                       }}
-                      className="w-full flex items-center justify-center py-2.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-800 rounded-lg transition-all duration-200 hover:scale-[1.02] group"
+                      className="w-full flex items-center justify-center py-2.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer"
                     >
-                      <div className="flex items-center space-x-2">
-                        <div className="relative">
-                          <Eye className="w-4 h-4" />
-                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-400 rounded-full animate-ping"></div>
-                        </div>
-                        <span>View All Notifications</span>
-                        <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                      </div>
+                      <Eye className="w-4 h-4 mr-2" />
+                      View All Notifications
                     </button>
                   </div>
                 </div>
@@ -1665,7 +1201,6 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
       <NotificationsModal
         isOpen={showAllModal}
         onClose={() => setShowAllModal(false)}
-        onNotificationUpdate={handleNotificationUpdate}
       />
     </>
   );

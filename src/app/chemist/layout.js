@@ -7,6 +7,7 @@ import { Toaster } from "react-hot-toast";
 import { getLoggedInUser } from "@/lib/authHelpers";
 import { usePathname } from "next/navigation";
 
+
 export default function ChemistLayout({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -36,6 +37,9 @@ export default function ChemistLayout({ children }) {
     setMobileSidebarOpen(false);
   };
 
+
+
+
   if (!mounted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
@@ -53,6 +57,7 @@ export default function ChemistLayout({ children }) {
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-gray-100 cursor-default relative">
+      
       {isLoggedIn && (
         <Sidebar
           open={sidebarOpen}
@@ -79,19 +84,7 @@ export default function ChemistLayout({ children }) {
         <main className="flex-1 p-4 md:p-6">{children}</main>
       </div>
 
-      {/* {!pathname.includes("/login") && (
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: "#1f2937",
-              color: "#fff",
-              backdropFilter: "blur(10px)",
-            },
-          }}
-        />
-      )} */}
+      
     </div>
   );
 }

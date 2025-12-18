@@ -513,7 +513,7 @@ export default function OrderDetailsPage() {
   if (!order)
     return (
       <div className="p-10 text-center min-h-screen bg-gradient-to-b from-blue-50/50 to-white dark:from-gray-900 dark:to-gray-950">
-        <Toaster />
+        
         <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
           <ClipboardList className="w-10 h-10 text-blue-500 dark:text-blue-400" />
         </div>

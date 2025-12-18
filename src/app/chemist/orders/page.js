@@ -304,7 +304,7 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="p-6 bg-gradient-to-b from-blue-50/50 to-white dark:from-gray-900 dark:to-gray-950 min-h-screen">
+    <div className="p-2 md:p-6 bg-gradient-to-b from-blue-50/50 to-white dark:from-gray-900 dark:to-gray-950 min-h-screen">
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8">
         <div>
