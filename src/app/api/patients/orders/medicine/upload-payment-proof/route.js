@@ -18,9 +18,6 @@ export async function POST(req) {
       });
     }
 
-    /* --------------------------------------------------
-       1️⃣ FETCH ORDER (PAYMENT REQUEST SOURCE)
-    -------------------------------------------------- */
     const { data: order, error: orderErr } = await supabase
       .from("medicine_orders")
       .select("id, patient_id, chemist_id, status, total_amount")
@@ -40,10 +37,8 @@ export async function POST(req) {
       );
     }
 
-    /* --------------------------------------------------
-       2️⃣ UPLOAD PAYMENT PROOF
-    -------------------------------------------------- */
-    const path = `payments/${order_id}/${Date.now()}-${file.name}`;
+
+    const path = `payments/${order.id}/${Date.now()}-${file.name}`;
 
     const { error: uploadErr } = await supabase.storage
       .from("payment_proofs")
@@ -51,25 +46,19 @@ export async function POST(req) {
 
     if (uploadErr) throw uploadErr;
 
-    const { data: signed } = await supabase.storage
-      .from("payment_proofs")
-      .createSignedUrl(path, 60 * 60 * 24);
+    const { data } = supabase.storage.from("payment_proofs").getPublicUrl(path);
 
-    /* --------------------------------------------------
-       3️⃣ SAVE PAYMENT (CHEMIST AUTO-RESOLVED)
-    -------------------------------------------------- */
+    const publicUrl = data.publicUrl;
+
     await supabase.from("medicine_order_payments").insert({
       order_id: order.id,
       patient_id: order.patient_id,
       amount: order.total_amount,
       payment_method: "upi",
-      payment_proof_url: signed.signedUrl,
+      payment_proof_url: publicUrl,
       status: "submitted",
     });
 
-    /* --------------------------------------------------
-       4️⃣ UPDATE ORDER STATUS
-    -------------------------------------------------- */
     await supabase
       .from("medicine_orders")
       .update({
@@ -82,13 +71,12 @@ export async function POST(req) {
       "Payment proof uploaded successfully",
       {
         order_id: order.id,
-        chemist_id: order.chemist_id, // ✅ comes from payment request
+        chemist_id: order.chemist_id, 
         amount: order.total_amount,
       },
       200,
       { headers: corsHeaders }
     );
-
   } catch (err) {
     return failure("Failed to upload payment proof", err.message, 500, {
       headers: corsHeaders,
