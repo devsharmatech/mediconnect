@@ -1614,18 +1614,7 @@ export default function ChemistNavbar({ onMenuClick, sidebarOpen }) {
                         My Profile
                       </span>
                     </Link>
-                    <Link
-                      href="/chemist/settings"
-                      className="flex items-center space-x-3 w-full p-3 rounded-xl hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                    >
-                      <Settings
-                        size={18}
-                        className="text-blue-600 dark:text-blue-400"
-                      />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
-                        Account Settings
-                      </span>
-                    </Link>
+                  
                     <div className="border-t border-blue-200 dark:border-gray-700 my-1"></div>
                     <button
                       onClick={handleLogout}
