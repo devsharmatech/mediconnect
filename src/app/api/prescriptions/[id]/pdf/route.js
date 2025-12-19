@@ -102,8 +102,8 @@ function buildPrescriptionHtml(rec) {
 
   const appointmentTime = rec.appointments?.appointment_time || "N/A";
 
-  const logoUrl = process.env.MEDICONNECT_LOGO_URL || "./logo.png";
-  const doctorIcon = "./dr.png";
+  const logoUrl = process.env.MEDICONNECT_LOGO_URL || "https://mediconnect-lemon.vercel.app/logo.png";
+  const doctorIcon = "https://mediconnect-lemon.vercel.app/dr.png";
 
   /* ---------------- MEDICINES ---------------- */
   const medicinesHtml = rec.medicines?.length
@@ -238,16 +238,7 @@ h4 {
   background:#000;
 }
 
-.medical-cross {
-  width:90px;
-  height:90px;
-  background:#fff;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.medical-cross img { width:70px; height:70px; }
+.medical-cross img { width:90px; height:90px; border-radius:50%;}
 </style>
 </head>
 
