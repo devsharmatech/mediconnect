@@ -67,9 +67,25 @@ INITIAL SYMPTOMS:
 "${screening.initial_symptoms}"
 
 CONVERSATION SO FAR:
-${answers.map((a, i) => `${i + 1}. ${a.answer}`).join("\n")}
+${screening.questions?.map((q, i) => 
+  `${i + 1}. Q: ${q.text}`
+).join("\n")}
 
-Ask ONE medically relevant follow-up question.
+PATIENT ANSWERS:
+${answers.map((a, i) => 
+  `${i + 1}. A: ${a.answer}`
+).join("\n")}
+
+IMPORTANT RULES:
+- The patient may deny symptoms using ANY language or tone
+  (e.g. no, naa, nahi, nahi hai, nope, nothing, kuch nahi, not really, etc.)
+- If the patient has DENIED a symptom:
+  → DO NOT rephrase or repeat the same question
+  → Move to a DIFFERENT symptom or medical factor
+- Always ask a NEW question
+- Ask ONLY ONE question
+- Do NOT diagnose
+
 
 Return STRICT JSON:
 {
@@ -113,6 +129,12 @@ INITIAL SYMPTOMS:
 
 PATIENT ANSWERS:
 ${answers.map((a, i) => `${i + 1}. ${a.answer}`).join("\n")}
+
+RULES:
+- If urgency is "routine", recommend at least "General Physician"
+- recommended_specialties MUST NOT be empty
+- specializations MUST NOT be empty
+- Do NOT diagnose with certainty
 
 Generate a medical screening analysis.
 
